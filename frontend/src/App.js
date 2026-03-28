@@ -42,6 +42,7 @@ import CalculatorAdmin from './pages/CalculatorAdmin';
 import QuoteAnalytics from './pages/QuoteAnalytics';
 import Customer360 from './pages/Customer360';
 import AdminAnalyticsDashboard from './components/AdminAnalyticsDashboard';
+import MarketingControlPanel from './components/MarketingControlPanel';
 import {
   CabinetLayout,
   CabinetDashboard,
@@ -210,6 +211,7 @@ function App() {
               <Route path="calculator" element={<CalculatorAdmin />} />
               <Route path="analytics/quotes" element={<QuoteAnalytics />} />
               <Route path="analytics" element={<AdminAnalyticsDashboard />} />
+              <Route path="marketing" element={<MarketingControlPanel />} />
             </Route>
 
             {/* ====== CUSTOMER CABINET (CLIENT PORTAL) ====== */}

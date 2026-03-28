@@ -19,7 +19,9 @@ import {
   Bell,
   CaretDown,
   CaretUp,
-  ChartLine
+  ChartLine,
+  Megaphone,
+  ChartBar
 } from '@phosphor-icons/react';
 
 const Layout = () => {
@@ -114,6 +116,17 @@ const Layout = () => {
         { path: '/admin/settings', icon: GearSix, label: 'Система' },
       ],
       roles: ['master_admin', 'moderator']
+    },
+    {
+      id: 'marketing',
+      type: 'group',
+      label: 'Маркетинг',
+      icon: Megaphone,
+      items: [
+        { path: '/admin/analytics', icon: ChartBar, label: 'Analytics' },
+        { path: '/admin/marketing', icon: Megaphone, label: 'Marketing Control' },
+      ],
+      roles: ['master_admin', 'moderator', 'admin']
     }
   ];
 
