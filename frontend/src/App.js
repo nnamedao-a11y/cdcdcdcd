@@ -17,6 +17,7 @@ import HomePage from './pages/public/HomePage';
 import VehiclesPage from './pages/public/VehiclesPage';
 import VinCheckPage from './pages/public/VinCheckPage';
 import VehicleDetailPage from './pages/public/VehicleDetailPage';
+import CalculatorPage from './pages/public/CalculatorPage';
 import CustomerLoginPage, { CustomerAuthProvider, CustomerProtectedRoute } from './pages/public/CustomerAuth';
 import { CollectionsPage, CollectionDetailPage } from './pages/public/CollectionsPage';
 
@@ -177,12 +178,14 @@ function App() {
               <Route path="cars/:slug" element={<VehicleDetailPage />} />
               <Route path="vin-check" element={<VinCheckPage />} />
               <Route path="vin-check/:vin" element={<VinCheckPage />} />
+              <Route path="calculator" element={<CalculatorPage />} />
               <Route path="collections" element={<CollectionsPage />} />
               <Route path="collections/:slug" element={<CollectionDetailPage />} />
             </Route>
 
             {/* ====== CUSTOMER AUTH ====== */}
             <Route path="/cabinet/login" element={<CustomerLoginPage />} />
+            <Route path="/cabinet" element={<Navigate to="/cabinet/login" replace />} />
 
             {/* ====== ADMIN CRM ====== */}
             <Route path="/admin/login" element={<Login />} />

@@ -5,6 +5,7 @@ export enum UserRole {
   MODERATOR = 'moderator',
   MANAGER = 'manager',
   FINANCE = 'finance',
+  CUSTOMER = 'customer',
 }
 
 // Lead Status Pipeline (Sales)

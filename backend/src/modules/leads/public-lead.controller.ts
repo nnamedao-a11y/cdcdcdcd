@@ -4,14 +4,15 @@
  * Публічні endpoints для створення leads з калькулятора (без авторизації)
  */
 
-import { Body, Controller, Post, Get, Param, Logger } from '@nestjs/common';
+import { Body, Controller, Post, Get, Param, Logger, Inject, forwardRef } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Lead } from './lead.schema';
 import { Quote, QuoteDocument } from '../calculator/schemas/quote.schema';
 import { generateId } from '../../shared/utils/index';
-import { LeadStatus, ContactStatus, LeadSource } from '../../shared/enums/index';
+import { LeadStatus, ContactStatus, LeadSource, AutomationTrigger } from '../../shared/enums/index';
 import { IsString, IsOptional, IsNumber } from 'class-validator';
+import { AutomationService } from '../automation/automation.service';
 
 // DTO for creating lead from quote
 class CreateLeadFromQuoteDto {
@@ -81,6 +82,7 @@ export class PublicLeadController {
   constructor(
     @InjectModel(Lead.name) private readonly leadModel: Model<Lead>,
     @InjectModel(Quote.name) private readonly quoteModel: Model<QuoteDocument>,
+    @Inject(forwardRef(() => AutomationService)) private readonly automationService: AutomationService,
   ) {}
 
   /**
@@ -190,6 +192,29 @@ export class PublicLeadController {
     });
 
     this.logger.log(`[Lead] Created quick lead ${(lead as any).id}`);
+
+    // Trigger automation for lead_created
+    try {
+      await this.automationService.emit({
+        trigger: AutomationTrigger.LEAD_CREATED,
+        entityType: 'lead',
+        entityId: (lead as any).id,
+        data: {
+          id: (lead as any).id,
+          firstName: dto.firstName,
+          lastName: dto.lastName || '',
+          phone: dto.phone,
+          email: dto.email || '',
+          vin: dto.vin || '',
+          source: source,
+          assignedTo: null,
+        },
+        userId: 'system',
+      });
+      this.logger.log(`[Lead] Automation triggered for lead ${(lead as any).id}`);
+    } catch (automationError) {
+      this.logger.error(`[Lead] Automation trigger failed: ${automationError.message}`);
+    }
 
     return {
       success: true,

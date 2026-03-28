@@ -35,6 +35,21 @@ const VehicleDetailPage = () => {
   const [showLeadForm, setShowLeadForm] = useState(false);
   const [showCalculator, setShowCalculator] = useState(false);
 
+  // SEO - Update title and meta when vehicle loads
+  useEffect(() => {
+    if (vehicle) {
+      const title = vehicle.title || `${vehicle.year || ''} ${vehicle.make || ''} ${vehicle.model || ''}`.trim();
+      document.title = `${title} - Купити з США | BIBI Cars`;
+      
+      const meta = document.querySelector("meta[name='description']");
+      if (meta) {
+        meta.setAttribute('content', 
+          `Купити ${title} з аукціону США. VIN: ${vehicle.vin}. Ціна: $${(vehicle.price || 0).toLocaleString()}. Повний розрахунок доставки.`
+        );
+      }
+    }
+  }, [vehicle]);
+
   useEffect(() => {
     fetchVehicle();
   }, [id, slug]);

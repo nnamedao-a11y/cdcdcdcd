@@ -6,7 +6,7 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { MagnifyingGlass, Funnel, SortAscending, Car } from '@phosphor-icons/react';
+import { MagnifyingGlass, Funnel, Car, Warning } from '@phosphor-icons/react';
 import VehicleCard from '../../components/public/VehicleCard';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
@@ -14,8 +14,18 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 const VehiclesPage = () => {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // 'all', 'hot', 'ending', 'upcoming'
+  const [error, setError] = useState(null);
+  const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
+
+  // SEO
+  useEffect(() => {
+    document.title = 'Каталог авто з США - BIBI Cars';
+    const meta = document.querySelector("meta[name='description']");
+    if (meta) {
+      meta.setAttribute('content', 'Авто з аукціонів США та Європи. Copart, IAAI. Калькулятор доставки, перевірка VIN.');
+    }
+  }, []);
 
   useEffect(() => {
     fetchVehicles();
@@ -23,8 +33,8 @@ const VehiclesPage = () => {
 
   const fetchVehicles = async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Use public vehicles API
       const params = new URLSearchParams({
         limit: '50',
         sort: 'createdAt',
@@ -45,18 +55,8 @@ const VehiclesPage = () => {
       setVehicles(res.data?.data || []);
     } catch (err) {
       console.error('Error fetching vehicles:', err);
-      // Fallback to auction-ranking if public vehicles API fails
-      try {
-        const endpoint = filter === 'hot' ? '/api/auction-ranking/hot?limit=50' :
-                        filter === 'ending' ? '/api/auction-ranking/ending-soon?limit=50' :
-                        filter === 'upcoming' ? '/api/auction-ranking/upcoming?limit=50&days=14' :
-                        '/api/auction-ranking/top?limit=50';
-        const res = await axios.get(`${API_URL}${endpoint}`);
-        setVehicles(res.data || []);
-      } catch (fallbackErr) {
-        console.error('Fallback also failed:', fallbackErr);
-        setVehicles([]);
-      }
+      setError('Не вдалося завантажити авто');
+      setVehicles([]);
     } finally {
       setLoading(false);
     }
@@ -137,11 +137,22 @@ const VehiclesPage = () => {
       </div>
 
       {/* Content */}
-      <div className="container mx-auto px-4 py-8">
+      <div className="max-w-6xl mx-auto px-4 py-8">
         {loading ? (
           <div className="py-20 text-center">
             <div className="w-12 h-12 border-4 border-zinc-200 border-t-zinc-900 rounded-full animate-spin mx-auto mb-4" />
-            <p className="text-zinc-500">Завантаження...</p>
+            <p className="text-zinc-500">Завантаження авто...</p>
+          </div>
+        ) : error ? (
+          <div className="py-20 text-center">
+            <Warning size={48} className="mx-auto text-red-400 mb-4" />
+            <p className="text-red-500 font-medium mb-2">{error}</p>
+            <button 
+              onClick={fetchVehicles}
+              className="mt-4 px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm hover:bg-zinc-800"
+            >
+              Спробувати ще
+            </button>
           </div>
         ) : filteredVehicles.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -154,9 +165,18 @@ const VehiclesPage = () => {
             ))}
           </div>
         ) : (
-          <div className="py-20 text-center">
+          <div className="py-20 text-center bg-zinc-100 rounded-xl">
             <Car size={48} className="mx-auto text-zinc-300 mb-4" />
-            <p className="text-zinc-500">Авто не знайдено</p>
+            <p className="text-zinc-500 font-medium mb-1">Авто не знайдено</p>
+            <p className="text-zinc-400 text-sm">Спробуйте змінити фільтри або пошук</p>
+            {search && (
+              <button 
+                onClick={() => setSearch('')}
+                className="mt-4 px-4 py-2 bg-zinc-900 text-white rounded-lg text-sm hover:bg-zinc-800"
+              >
+                Очистити пошук
+              </button>
+            )}
           </div>
         )}
       </div>

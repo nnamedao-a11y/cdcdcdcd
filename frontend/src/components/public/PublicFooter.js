@@ -28,8 +28,9 @@ const PublicFooter = () => {
             <h4 className="text-white font-semibold mb-4">Навігація</h4>
             <ul className="space-y-2 text-sm">
               <li><Link to="/" className="hover:text-white transition-colors">Головна</Link></li>
-              <li><Link to="/vehicles" className="hover:text-white transition-colors">Каталог авто</Link></li>
-              <li><Link to="/vin-check" className="hover:text-white transition-colors">VIN перевірка</Link></li>
+              <li><Link to="/cars" className="hover:text-white transition-colors">Каталог авто</Link></li>
+              <li><Link to="/vin-check" className="hover:text-white transition-colors">VIN Check</Link></li>
+              <li><Link to="/calculator" className="hover:text-white transition-colors">Калькулятор</Link></li>
             </ul>
           </div>
 
