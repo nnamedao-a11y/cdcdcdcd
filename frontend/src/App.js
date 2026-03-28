@@ -11,6 +11,9 @@ import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from
 import axios from 'axios';
 import { Toaster } from 'sonner';
 
+// i18n
+import { LanguageProvider } from './i18n';
+
 // Public pages
 import PublicLayout from './components/public/PublicLayout';
 import HomePage from './pages/public/HomePage';
@@ -44,6 +47,7 @@ import QuoteAnalytics from './pages/QuoteAnalytics';
 import Customer360 from './pages/Customer360';
 import AdminAnalyticsDashboard from './components/AdminAnalyticsDashboard';
 import MarketingControlPanel from './components/MarketingControlPanel';
+import ModerationPage from './pages/ModerationPage';
 import {
   CabinetLayout,
   CabinetDashboard,
@@ -165,17 +169,18 @@ const ProtectedRoute = ({ children }) => {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <CustomerAuthProvider>
-          <Toaster position="top-right" richColors />
-          <Routes>
-            {/* ====== PUBLIC SITE ====== */}
-            <Route path="/" element={<PublicLayout />}>
-              <Route index element={<HomePage />} />
-              <Route path="vehicles" element={<VehiclesPage />} />
-              <Route path="cars" element={<VehiclesPage />} />
-              <Route path="vehicle/:id" element={<VehicleDetailPage />} />
-              <Route path="cars/:slug" element={<VehicleDetailPage />} />
+      <LanguageProvider>
+        <AuthProvider>
+          <CustomerAuthProvider>
+            <Toaster position="top-right" richColors />
+            <Routes>
+              {/* ====== PUBLIC SITE ====== */}
+              <Route path="/" element={<PublicLayout />}>
+                <Route index element={<HomePage />} />
+                <Route path="vehicles" element={<VehiclesPage />} />
+                <Route path="cars" element={<VehiclesPage />} />
+                <Route path="vehicle/:id" element={<VehicleDetailPage />} />
+                <Route path="cars/:slug" element={<VehicleDetailPage />} />
               <Route path="vin-check" element={<VinCheckPage />} />
               <Route path="vin-check/:vin" element={<VinCheckPage />} />
               <Route path="calculator" element={<CalculatorPage />} />
@@ -215,6 +220,8 @@ function App() {
               <Route path="analytics/quotes" element={<QuoteAnalytics />} />
               <Route path="analytics" element={<AdminAnalyticsDashboard />} />
               <Route path="marketing" element={<MarketingControlPanel />} />
+              <Route path="moderation" element={<ModerationPage />} />
+              <Route path="listings/moderation" element={<ModerationPage />} />
             </Route>
 
             {/* ====== CUSTOMER CABINET (CLIENT PORTAL) ====== */}
@@ -237,6 +244,7 @@ function App() {
           </Routes>
         </CustomerAuthProvider>
       </AuthProvider>
+    </LanguageProvider>
     </BrowserRouter>
   );
 }

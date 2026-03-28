@@ -8,10 +8,12 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { Calculator, Car, Package, CurrencyDollar, ArrowRight } from '@phosphor-icons/react';
 import { Link } from 'react-router-dom';
+import { useLang } from '../../i18n';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
 const CalculatorPage = () => {
+  const { t, lang } = useLang();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
@@ -27,12 +29,8 @@ const CalculatorPage = () => {
 
   // SEO
   useEffect(() => {
-    document.title = 'Калькулятор доставки авто з США - BIBI Cars';
-    const meta = document.querySelector("meta[name='description']");
-    if (meta) {
-      meta.setAttribute('content', 'Розрахуйте повну вартість авто з аукціону США під ключ. Доставка, митні платежі, страхування.');
-    }
-  }, []);
+    document.title = t('seoCalculatorTitle');
+  }, [lang, t]);
 
   useEffect(() => {
     fetchSettings();
@@ -52,10 +50,10 @@ const CalculatorPage = () => {
         { code: 'CA', name: 'California (Long Beach)' }
       ]);
       setVehicleTypes([
-        { code: 'sedan', name: 'Седан' },
-        { code: 'suv', name: 'SUV / Кроссовер' },
-        { code: 'bigSUV', name: 'Великий SUV' },
-        { code: 'pickup', name: 'Пікап' }
+        { code: 'sedan', name: t('sedan') },
+        { code: 'suv', name: t('suv') },
+        { code: 'bigSUV', name: t('bigSuv') },
+        { code: 'pickup', name: t('pickup') }
       ]);
     }
   };
@@ -64,7 +62,7 @@ const CalculatorPage = () => {
     e.preventDefault();
     
     if (!formData.price || parseFloat(formData.price) <= 0) {
-      setError('Введіть ціну авто');
+      setError(lang === 'bg' ? 'Въведете цена на автомобила' : 'Enter car price');
       return;
     }
 
@@ -97,8 +95,8 @@ const CalculatorPage = () => {
           <div className="w-16 h-16 bg-zinc-900 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <Calculator size={32} className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold text-zinc-900 mb-2">Калькулятор вартості</h1>
-          <p className="text-zinc-500">Розрахуйте повну вартість авто з аукціону США під ключ</p>
+          <h1 className="text-3xl font-bold text-zinc-900 mb-2">{t('calculatorTitle')}</h1>
+          <p className="text-zinc-500">{t('calculatorSubtitle')}</p>
         </div>
 
         <div className="grid lg:grid-cols-2 gap-8">
@@ -107,7 +105,7 @@ const CalculatorPage = () => {
             <form onSubmit={handleCalculate} className="space-y-5">
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Ціна на аукціоні (USD) *
+                  {t('auctionPriceUsd')} *
                 </label>
                 <div className="relative">
                   <CurrencyDollar size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
@@ -125,7 +123,7 @@ const CalculatorPage = () => {
 
               <div>
                 <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Порт відправки (США)
+                  {t('departurePort')}
                 </label>
                 <select
                   value={formData.port}
