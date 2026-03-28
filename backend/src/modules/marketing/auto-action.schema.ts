@@ -22,7 +22,7 @@ export class AutoAction {
   @Prop({ required: true })
   campaign: string;
 
-  @Prop({ required: true })
+  @Prop({ default: '' })
   campaignId: string;
 
   @Prop()
