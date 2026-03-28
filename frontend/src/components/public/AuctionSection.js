@@ -26,7 +26,7 @@ const AuctionSection = ({ title, icon: Icon, data, emptyText }) => {
         {data?.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {data.map((item) => (
-              <VehicleCard key={item._id || item.vin} vehicle={item} />
+              <VehicleCard key={item._id || item.id || item.vin} vehicle={item} useSlug={true} />
             ))}
           </div>
         ) : (

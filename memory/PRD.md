@@ -199,7 +199,18 @@ PUBLIC_SITE_URL=https://8afbde17-e19b-412a-8fd2-16f05c96d9c0.preview.emergentage
 
 ## What's Been Implemented
 
-### 2026-03-28 (Latest Update)
+### 2026-03-28 (Latest Update - BLOCK 1 COMPLETE)
+- ✅ **BLOCK 1 - GLOBAL FLOW CLOSED**
+- ✅ Homepage fallback to public/vehicles API when auction-ranking is empty
+- ✅ Vehicle cards on homepage now clickable with proper navigation
+- ✅ Calculator button added to vehicle detail page
+- ✅ Calculator modal with port/type selection and cost breakdown
+- ✅ Calculator API fixed (price/port instead of auctionPrice/usPort)
+- ✅ Calculator result display fixed (totals.visible)
+- ✅ Lead form creates leads with VIN, price, UTM data
+- ✅ Full end-to-end flow: Traffic → Car → Calculator → Lead → CRM
+
+### Previous (Phase 7)
 - ✅ Meta Ads Service - API integration for spend sync
 - ✅ Campaign Spend Schema - MongoDB storage
 - ✅ Auto Action Service - Pause/scale/decrease
@@ -256,6 +267,25 @@ PUBLIC_SITE_URL=https://8afbde17-e19b-412a-8fd2-16f05c96d9c0.preview.emergentage
 **Meta Ads API:** Ready (needs credentials)
 **Analytics:** Tracking & Dashboard Live
 **Auto Actions:** Ready (disabled by default)
+
+### BLOCK 1 - GLOBAL FLOW: CLOSED ✅
+
+**Full Flow Verified:**
+```
+Traffic → Homepage → /cars → /cars/:slug → Calculator → Lead Form → CRM
+```
+
+**Test Results:**
+- Backend: 100% (8/8 API endpoints working)
+- Frontend: 100% (all core functionality working)
+- Integration: 100% (complete end-to-end flow)
+
+**Key Features:**
+- ✅ Homepage shows 5 test vehicles with fallback logic
+- ✅ Vehicle cards clickable with proper navigation
+- ✅ Calculator calculates $22,699 for VW Tiguan ($15,500 auction price)
+- ✅ Lead form creates leads with VIN, price, UTM attribution
+- ✅ Admin CRM shows leads with all data
 
 ### Marketing Layer Status: CLOSED ✅
 
