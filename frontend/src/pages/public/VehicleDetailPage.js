@@ -38,10 +38,21 @@ const VehicleDetailPage = () => {
 
   const fetchVehicle = async () => {
     try {
-      // Try slug-based URL first (from publishing)
       const lookupId = slug || id;
       
-      // Try publishing API first
+      // Try public vehicles API first
+      try {
+        const res = await axios.get(`${API_URL}/api/public/vehicles/${lookupId}`);
+        if (res.data) {
+          setVehicle(res.data);
+          setLoading(false);
+          return;
+        }
+      } catch (pubErr) {
+        console.log('Public vehicles lookup failed, trying publishing...');
+      }
+
+      // Try publishing API
       try {
         const res = await axios.get(`${API_URL}/api/publishing/public/listings/${lookupId}`);
         if (res.data) {
@@ -307,6 +318,195 @@ const VehicleDetailPage = () => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Lead Form Modal */}
+      {showLeadForm && (
+        <LeadFormModal 
+          vehicle={vehicle} 
+          onClose={() => setShowLeadForm(false)} 
+        />
+      )}
+    </div>
+  );
+};
+
+// Lead Form Modal Component
+const LeadFormModal = ({ vehicle, onClose }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    phone: '',
+    email: '',
+    message: ''
+  });
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+      
+      // Get UTM params from URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const utm = {
+        source: urlParams.get('utm_source') || 'direct',
+        campaign: urlParams.get('utm_campaign') || 'none',
+        medium: urlParams.get('utm_medium') || 'organic'
+      };
+
+      const leadData = {
+        firstName: formData.name.split(' ')[0] || formData.name,
+        lastName: formData.name.split(' ').slice(1).join(' ') || '',
+        phone: formData.phone,
+        email: formData.email || undefined,
+        vin: vehicle.vin,
+        source: 'website',
+        price: vehicle.price,
+        vehicleTitle: vehicle.title || `${vehicle.make} ${vehicle.model}`,
+        comment: `Авто: ${vehicle.title || vehicle.make + ' ' + vehicle.model}
+VIN: ${vehicle.vin}
+Ціна: $${vehicle.price?.toLocaleString()}
+UTM: ${utm.source}/${utm.campaign}
+Повідомлення: ${formData.message || 'Немає'}`
+      };
+
+      // Use /api/public/leads/quick endpoint
+      await axios.post(`${API_URL}/api/public/leads/quick`, leadData);
+      setSuccess(true);
+      
+      // Track analytics event
+      if (window.trackEvent) {
+        window.trackEvent('lead_created', {
+          vin: vehicle.vin,
+          price: vehicle.price,
+          source: utm.source,
+          campaign: utm.campaign
+        });
+      }
+    } catch (err) {
+      console.error('Error creating lead:', err);
+      setError('Виникла помилка. Спробуйте ще раз або зателефонуйте нам.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (success) {
+    return (
+      <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-2xl p-8 max-w-md w-full text-center">
+          <CheckCircle size={64} className="mx-auto text-green-500 mb-4" />
+          <h3 className="text-2xl font-bold text-zinc-900 mb-2">Дякуємо!</h3>
+          <p className="text-zinc-600 mb-6">
+            Ваша заявка прийнята. Наш менеджер зв'яжеться з вами протягом 15 хвилин.
+          </p>
+          <button
+            onClick={onClose}
+            className="w-full bg-zinc-900 text-white py-3 rounded-lg font-semibold hover:bg-zinc-800"
+          >
+            Закрити
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl p-6 max-w-md w-full" onClick={e => e.stopPropagation()}>
+        <h3 className="text-xl font-bold text-zinc-900 mb-2">Залишити заявку</h3>
+        <p className="text-zinc-500 text-sm mb-6">
+          {vehicle.title || `${vehicle.make} ${vehicle.model}`} - ${vehicle.price?.toLocaleString()}
+        </p>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">Ім'я *</label>
+            <input
+              type="text"
+              required
+              value={formData.name}
+              onChange={e => setFormData({...formData, name: e.target.value})}
+              className="w-full px-4 py-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-transparent"
+              placeholder="Ваше ім'я"
+              data-testid="lead-name-input"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">Телефон *</label>
+            <input
+              type="tel"
+              required
+              value={formData.phone}
+              onChange={e => setFormData({...formData, phone: e.target.value})}
+              className="w-full px-4 py-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-transparent"
+              placeholder="+380 XX XXX XX XX"
+              data-testid="lead-phone-input"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">Email</label>
+            <input
+              type="email"
+              value={formData.email}
+              onChange={e => setFormData({...formData, email: e.target.value})}
+              className="w-full px-4 py-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-transparent"
+              placeholder="email@example.com"
+              data-testid="lead-email-input"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-1">Повідомлення</label>
+            <textarea
+              value={formData.message}
+              onChange={e => setFormData({...formData, message: e.target.value})}
+              className="w-full px-4 py-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-zinc-900 focus:border-transparent resize-none"
+              rows={3}
+              placeholder="Ваше повідомлення..."
+              data-testid="lead-message-input"
+            />
+          </div>
+
+          {error && (
+            <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-zinc-900 text-white py-4 rounded-lg font-semibold hover:bg-zinc-800 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            data-testid="lead-submit-btn"
+          >
+            {loading ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                Відправка...
+              </>
+            ) : (
+              <>
+                <Phone size={20} />
+                Відправити заявку
+              </>
+            )}
+          </button>
+        </form>
+
+        <button
+          onClick={onClose}
+          className="w-full mt-3 text-zinc-500 hover:text-zinc-900 text-sm"
+        >
+          Скасувати
+        </button>
       </div>
     </div>
   );

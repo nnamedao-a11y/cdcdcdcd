@@ -13,6 +13,7 @@ import { VehicleService } from './services/vehicle.service';
 import { IngestionController } from './controllers/ingestion.controller';
 import { ProxyAdminController } from './antiblock/proxy-admin.controller';
 import { VehiclesController } from './controllers/vehicles.controller';
+import { PublicVehiclesController } from './controllers/public-vehicles.controller';
 
 // Lead model for vehicles controller
 import { Lead, LeadSchema } from '../leads/lead.schema';
@@ -43,7 +44,7 @@ import { IAAIRunner } from './runners/iaai.runner';
       { name: Lead.name, schema: LeadSchema },
     ]),
   ],
-  controllers: [IngestionController, ProxyAdminController, VehiclesController],
+  controllers: [IngestionController, ProxyAdminController, VehiclesController, PublicVehiclesController],
   providers: [
     // Core services
     IngestionService,

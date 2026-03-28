@@ -24,28 +24,28 @@ const VehiclesPage = () => {
   const fetchVehicles = async () => {
     setLoading(true);
     try {
-      // Use publishing API for public listings
+      // Use public vehicles API
       const params = new URLSearchParams({
         limit: '50',
-        sortBy: 'publishedAt',
-        sortOrder: 'desc'
+        sort: 'createdAt',
+        order: 'desc'
       });
 
       if (filter === 'hot') {
-        params.set('featured', 'true');
+        params.set('status', 'hot');
       } else if (filter === 'ending') {
-        params.set('auction', 'true');
-        params.set('sortBy', 'auctionDate');
-        params.set('sortOrder', 'asc');
+        params.set('status', 'ending');
+        params.set('sort', 'auctionDate');
+        params.set('order', 'asc');
       } else if (filter === 'upcoming') {
-        params.set('auction', 'true');
+        params.set('status', 'future');
       }
 
-      const res = await axios.get(`${API_URL}/api/publishing/public/listings?${params.toString()}`);
-      setVehicles(res.data?.items || []);
+      const res = await axios.get(`${API_URL}/api/public/vehicles?${params.toString()}`);
+      setVehicles(res.data?.data || []);
     } catch (err) {
       console.error('Error fetching vehicles:', err);
-      // Fallback to auction-ranking if publishing API fails
+      // Fallback to auction-ranking if public vehicles API fails
       try {
         const endpoint = filter === 'hot' ? '/api/auction-ranking/hot?limit=50' :
                         filter === 'ending' ? '/api/auction-ranking/ending-soon?limit=50' :
@@ -55,6 +55,7 @@ const VehiclesPage = () => {
         setVehicles(res.data || []);
       } catch (fallbackErr) {
         console.error('Fallback also failed:', fallbackErr);
+        setVehicles([]);
       }
     } finally {
       setLoading(false);
