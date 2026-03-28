@@ -32,9 +32,23 @@ export interface ActionDecision {
   reasons?: string[];
 }
 
+export interface DecisionLogEntry {
+  campaign: string;
+  roi: number | null;
+  spend: number;
+  profit: number;
+  decision: string;
+  reasons: string[];
+  timestamp: Date;
+}
+
 @Injectable()
 export class AutoActionService {
   private readonly logger = new Logger(AutoActionService.name);
+  
+  // Decision log for transparency (why system made each decision)
+  private decisionLog: DecisionLogEntry[] = [];
+  private readonly MAX_LOG_SIZE = 1000;
   
   // Default configuration - can be overridden via settings
   private config: AutoModeConfig = {
@@ -56,6 +70,37 @@ export class AutoActionService {
     private metaAdsService: MetaAdsService,
     private performanceService: MarketingPerformanceService,
   ) {}
+
+  /**
+   * Log a decision for transparency
+   */
+  logDecision(decision: ActionDecision): void {
+    const entry: DecisionLogEntry = {
+      campaign: decision.campaign,
+      roi: decision.roi ?? null,
+      spend: decision.spend || 0,
+      profit: decision.profit || 0,
+      decision: decision.status,
+      reasons: decision.reasons || [],
+      timestamp: new Date(),
+    };
+    
+    this.decisionLog.unshift(entry);
+    
+    // Keep log size manageable
+    if (this.decisionLog.length > this.MAX_LOG_SIZE) {
+      this.decisionLog = this.decisionLog.slice(0, this.MAX_LOG_SIZE);
+    }
+    
+    this.logger.log(`Decision logged: ${decision.campaign} → ${decision.status} (ROI: ${decision.roi ?? 'N/A'}%)`);
+  }
+
+  /**
+   * Get decision log
+   */
+  getDecisionLog(limit: number = 100): DecisionLogEntry[] {
+    return this.decisionLog.slice(0, limit);
+  }
 
   /**
    * Get current configuration

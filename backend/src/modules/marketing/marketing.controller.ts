@@ -364,6 +364,22 @@ export class MarketingController {
   }
 
   /**
+   * Get decision log (why system made each decision)
+   * GET /api/marketing/auto/decisions?limit=100
+   */
+  @Get('auto/decisions')
+  async getDecisionLog(@Query('limit') limit: string) {
+    const limitNum = Math.min(parseInt(limit || '100', 10), 500);
+    const log = this.autoAction.getDecisionLog(limitNum);
+    
+    return {
+      success: true,
+      count: log.length,
+      data: log,
+    };
+  }
+
+  /**
    * Execute action manually
    * POST /api/marketing/auto/execute
    */
