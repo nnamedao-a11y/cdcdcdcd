@@ -199,24 +199,57 @@ PUBLIC_SITE_URL=https://8afbde17-e19b-412a-8fd2-16f05c96d9c0.preview.emergentage
 
 ## What's Been Implemented
 
-### 2026-03-28 (Latest Update - BLOCK 1 COMPLETE)
-- ✅ **BLOCK 1 - GLOBAL FLOW CLOSED**
-- ✅ Homepage fallback to public/vehicles API when auction-ranking is empty
-- ✅ Vehicle cards on homepage now clickable with proper navigation
-- ✅ Calculator button added to vehicle detail page
-- ✅ Calculator modal with port/type selection and cost breakdown
-- ✅ Calculator API fixed (price/port instead of auctionPrice/usPort)
-- ✅ Calculator result display fixed (totals.visible)
-- ✅ Lead form creates leads with VIN, price, UTM data
-- ✅ Full end-to-end flow: Traffic → Car → Calculator → Lead → CRM
+### 2026-03-28 (SYSTEM COMPLETE - ALL 6 BLOCKS CLOSED)
+
+#### BLOCK 1 - GLOBAL FLOW ✅
+- Homepage fallback to public/vehicles API when auction-ranking is empty
+- Vehicle cards clickable with proper navigation
+- Calculator button on vehicle detail page
+- Calculator modal with port/type selection and cost breakdown
+- Lead form creates leads with VIN, price, UTM data
+- Full end-to-end flow: Traffic → Car → Calculator → Lead → CRM
+
+#### BLOCK 2 - SITE FINALIZATION ✅
+- Header with full navigation (Home, Cars, VIN Check, Calculator, Cabinet)
+- Footer with contacts and navigation links
+- Standalone Calculator page (/calculator)
+- Loading/Empty/Error states on all pages
+- SEO - dynamic page titles and meta descriptions
+- Mobile responsive menu
+
+#### BLOCK 3 - ROLES & ACCESS ✅
+- 6 roles: master_admin, admin, moderator, manager, finance, customer
+- JWT-based authentication
+- Role guards on backend
+- Protected routes on frontend
+
+#### BLOCK 4 - TASKS/SLA ✅
+- Auto-task creation on lead (2 tasks per lead)
+- 15-minute SLA for first contact
+- Task priority badges (high/medium/low)
+- Due date tracking and overdue status
+
+#### BLOCK 5 - MULTILANGUAGE (EN/BG) ✅
+- Full i18n system with BG/EN translations
+- LanguageProvider React context
+- Language switcher in header with localStorage persistence
+- Default language: BG (Bulgarian market)
+- All public pages translated
+
+#### BLOCK 6 - MODERATION UI ✅
+- Moderation page /admin/moderation
+- Filter by status (parsed, normalized, pending_review, approved, published)
+- Approve/Reject/Publish actions
+- Bulk actions (approve all, publish all)
+- Stats cards per status
+- Search by VIN, make, model
 
 ### Previous (Phase 7)
-- ✅ Meta Ads Service - API integration for spend sync
-- ✅ Campaign Spend Schema - MongoDB storage
-- ✅ Auto Action Service - Pause/scale/decrease
-- ✅ Safety Layer - Limits and checks
-- ✅ New API endpoints for Meta Ads and auto actions
-- ✅ Marketing controller v2.0
+- Meta Ads Service - API integration for spend sync
+- Campaign Spend Schema - MongoDB storage
+- Auto Action Service - Pause/scale/decrease
+- Safety Layer - Limits and checks
+- Marketing controller v2.0
 
 ### Previous
 - ✅ Facebook Conversion API service (needs credentials)
