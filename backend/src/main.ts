@@ -2,6 +2,8 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { ConfigService } from '@nestjs/config';
+import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import helmet from 'helmet';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
@@ -17,21 +19,30 @@ async function bootstrap() {
   
   const configService = app.get(ConfigService);
   
-  // CORS - permissive for development
+  // Security headers
+  app.use(helmet({
+    contentSecurityPolicy: false, // Disable for API
+  }));
+  
+  // CORS - configure based on environment
+  const corsOrigins = configService.get('CORS_ORIGINS') || '*';
   app.enableCors({
-    origin: '*',
+    origin: corsOrigins === '*' ? '*' : corsOrigins.split(','),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
   });
 
   // Global prefix
   app.setGlobalPrefix('api');
+  
+  // Global exception filter
+  app.useGlobalFilters(new AllExceptionsFilter());
 
   // Validation with transform
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
-      forbidNonWhitelisted: false, // Less strict for faster processing
+      forbidNonWhitelisted: false,
       transform: true,
       transformOptions: {
         enableImplicitConversion: true,
