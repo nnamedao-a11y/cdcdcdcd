@@ -3,7 +3,7 @@
 ## Overview
 BIBI Cars CRM - End-to-End Revenue Machine для автобізнесу з аукціонів США та Європи.
 
-**Статус:** Production-Ready Revenue System
+**Статус:** Production-Ready Growth System v2.0
 
 ## Architecture
 - **Backend**: NestJS + MongoDB (TypeScript)
@@ -48,14 +48,34 @@ BIBI Cars CRM - End-to-End Revenue Machine для автобізнесу з ау
 23. Fake Traffic Detection
 24. Dashboard API
 
-### Marketing Automation (Phase 6) ✅ (NEW)
+### Marketing Automation (Phase 6) ✅
 25. Facebook Conversion API (CAPI)
 26. Auto Budget Optimizer
 27. Campaign Performance Aggregation
 28. ROI Tracking
 29. Admin Analytics Dashboard UI
 
+### Meta Ads API Integration (Phase 7) ✅ NEW
+30. Meta Ads Service - Spend sync from Facebook
+31. Campaign Spend Schema - Store spend data
+32. Auto Action Service - Pause/Scale/Decrease
+33. Safety Layer - Daily limits, min spend checks
+34. Auto Mode Config - Enable/disable automation
+35. Action History - Full audit log
+36. ROI Endpoint - Real spend + profit = true ROI
+
 ## Architecture Diagrams
+
+### Meta Ads Flow (NEW)
+```
+Meta Ads API
+→ Campaign Insights (spend, clicks, impressions)
+→ Campaign Spend Schema (MongoDB)
+→ ROI Calculation (profit / spend)
+→ Auto Budget Optimizer (scale/keep/watch/kill)
+→ Auto Actions (pause/increase/decrease budget)
+→ Admin Dashboard
+```
 
 ### Marketing Automation Flow
 ```
@@ -65,10 +85,11 @@ Traffic Source
 → Lead/Deal Attribution
 → Facebook CAPI (events back to FB)
 → Auto Budget Optimizer
-   → SCALE (ROI > 30%)
-   → KEEP (ROI 10-30%)
-   → WATCH (needs data)
-   → KILL (burning money)
+ → SCALE (ROI > 30%)
+ → KEEP (ROI 10-30%)
+ → WATCH (needs data)
+ → KILL (burning money)
+→ Auto Actions (Meta API)
 → Admin Dashboard
 ```
 
@@ -76,9 +97,9 @@ Traffic Source
 ```
 User Behavior (saved/viewed/quotes)
 → Intent Scoring Service
-   → cold (0-2 pts)
-   → warm (3-5 pts)
-   → hot (6+ pts)
+ → cold (0-2 pts)
+ → warm (3-5 pts)
+ → hot (6+ pts)
 → Dynamic Pricing (0.90x - 1.15x)
 → Manager AI Assist (advice)
 → Deal Closing Logic (urgency)
@@ -87,12 +108,24 @@ User Behavior (saved/viewed/quotes)
 ## API Endpoints Summary
 
 ### Marketing
-- `GET /api/marketing/status`
-- `GET /api/marketing/campaigns?days=30`
-- `GET /api/marketing/sources?days=30`
-- `GET /api/marketing/recommendations?days=30`
-- `POST /api/marketing/optimize`
-- `POST /api/marketing/fb-event` (requires FB creds)
+- `GET /api/marketing/status` - Service status with Meta Ads info
+- `GET /api/marketing/campaigns?days=30` - Campaign performance
+- `GET /api/marketing/sources?days=30` - Source summary
+- `GET /api/marketing/recommendations?days=30` - AI recommendations
+- `POST /api/marketing/optimize` - Evaluate campaigns
+- `POST /api/marketing/fb-event` - Send FB event (requires FB creds)
+
+### Meta Ads API (NEW)
+- `GET /api/marketing/spend` - Get synced spend data
+- `POST /api/marketing/spend/sync` - Manual sync spend
+- `GET /api/marketing/meta/insights?days=7` - Direct Meta insights
+- `GET /api/marketing/roi?days=30` - Campaigns with real ROI
+
+### Auto Actions (NEW)
+- `GET /api/marketing/auto/config` - Get auto mode config
+- `PATCH /api/marketing/auto/config` - Update config
+- `GET /api/marketing/auto/history?days=30` - Action history
+- `POST /api/marketing/auto/execute` - Execute action manually
 
 ### Revenue AI
 - `GET /api/revenue-ai/intent?customerId=xxx`
@@ -111,7 +144,7 @@ User Behavior (saved/viewed/quotes)
 
 ### Admin Panel
 - `/admin` - Dashboard
-- `/admin/analytics` - Marketing Analytics Dashboard ✅ NEW
+- `/admin/analytics` - Marketing Analytics Dashboard ✅
 - `/admin/analytics/quotes` - Quote Analytics
 - `/admin/leads` - Leads management
 - `/admin/customers` - Customers
@@ -137,9 +170,23 @@ TELEGRAM_BOT_USERNAME=Bibicars_bot
 FB_PIXEL_ID=
 FB_ACCESS_TOKEN=
 
+# Meta Ads API (NEW - for spend sync)
+META_ACCESS_TOKEN=
+META_AD_ACCOUNT_ID=
+
 # General
-PUBLIC_SITE_URL=https://a11y-review.preview.emergentagent.com
+PUBLIC_SITE_URL=https://8afbde17-e19b-412a-8fd2-16f05c96d9c0.preview.emergentagent.com
 ```
+
+## Auto Mode Configuration
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| enabled | false | Enable auto actions |
+| maxActionsPerDay | 5 | Daily limit |
+| maxBudgetChangePercent | 20 | Max budget change |
+| minSpendForDecision | 50 | Min spend for action |
+| minDataDays | 3 | Min days of data |
 
 ## Auto Budget Optimizer Rules
 
@@ -150,30 +197,25 @@ PUBLIC_SITE_URL=https://a11y-review.preview.emergentagent.com
 | WATCH | Low data or mixed signals | Optimize |
 | KILL | Spend high, Deals = 0, Fake > 30% | Pause immediately |
 
-## What's Been Implemented (2026-03-28)
+## What's Been Implemented
 
-### Marketing Module
+### 2026-03-28 (Latest Update)
+- ✅ Meta Ads Service - API integration for spend sync
+- ✅ Campaign Spend Schema - MongoDB storage
+- ✅ Auto Action Service - Pause/scale/decrease
+- ✅ Safety Layer - Limits and checks
+- ✅ New API endpoints for Meta Ads and auto actions
+- ✅ Marketing controller v2.0
+
+### Previous
 - ✅ Facebook Conversion API service (needs credentials)
 - ✅ Auto Budget Optimizer (rule-based)
 - ✅ Marketing Performance aggregation
 - ✅ Campaign decisions (scale/keep/watch/kill)
 - ✅ ROI calculation
 - ✅ Source attribution
-
-### Admin Analytics Dashboard
-- ✅ KPI Cards (Visits, Sessions, Leads, Deals, Conversion)
-- ✅ Funnel visualization
-- ✅ Sources table with ROI
-- ✅ Campaign Optimizer with decisions
-- ✅ Fake traffic alerts
-- ✅ Timeline chart (Recharts)
-
-### Frontend Analytics Tracker
-- ✅ sendBeacon-based event tracking
-- ✅ UTM parameter capture
-- ✅ Session management
-- ✅ Auto page view tracking
-- ✅ Custom event helpers
+- ✅ Admin Analytics Dashboard with KPI, Funnel, Sources, Optimizer
+- ✅ Analytics Tracker with sendBeacon
 
 ## Prioritized Backlog
 
@@ -185,18 +227,18 @@ PUBLIC_SITE_URL=https://a11y-review.preview.emergentagent.com
 - [x] Analytics Tracking
 - [x] Marketing Automation
 - [x] Admin Analytics Dashboard
+- [x] Meta Ads API Integration
+- [x] Auto Actions System
 
-### P1 (High Priority) - Next
-- [ ] Facebook CAPI credentials setup
-- [ ] Meta Ads API spend sync
-- [ ] Auto-pause/scale actions (API integration)
-- [ ] Email channel (Resend/SendGrid)
+### P1 (High Priority) - Credentials Needed
+- [ ] Set META_ACCESS_TOKEN and META_AD_ACCOUNT_ID for real spend sync
+- [ ] Set FB_PIXEL_ID and FB_ACCESS_TOKEN for CAPI
 
 ### P2 (Medium Priority)
 - [ ] Google Ads integration
 - [ ] TikTok Ads integration
+- [ ] Email channel (Resend/SendGrid)
 - [ ] A/B testing for creatives
-- [ ] Advanced predictive analytics
 
 ### P3 (Low Priority)
 - [ ] ML-based recommendations
@@ -207,10 +249,12 @@ PUBLIC_SITE_URL=https://a11y-review.preview.emergentagent.com
 
 ## SYSTEM STATUS
 
-**Backend:** 100% Operational
+**Backend:** 100% Operational (v2.0.0)
 **Frontend:** 100% Operational
 **Telegram Bot:** Configured & Working
 **Facebook CAPI:** Ready (needs credentials)
+**Meta Ads API:** Ready (needs credentials)
 **Analytics:** Tracking & Dashboard Live
+**Auto Actions:** Ready (disabled by default)
 
 **Last Updated:** 2026-03-28

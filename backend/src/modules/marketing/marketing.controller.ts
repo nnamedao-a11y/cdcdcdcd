@@ -1,7 +1,9 @@
-import { Controller, Get, Post, Body, Query, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query, Logger, Param, Patch } from '@nestjs/common';
 import { FacebookConversionService } from './facebook-conversion.service';
 import { AutoBudgetOptimizerService, CampaignMetrics } from './auto-budget-optimizer.service';
 import { MarketingPerformanceService } from './marketing-performance.service';
+import { MetaAdsService } from './meta-ads.service';
+import { AutoActionService, AutoModeConfig } from './auto-action.service';
 
 /**
  * Marketing Controller
@@ -16,6 +18,8 @@ export class MarketingController {
     private readonly facebookService: FacebookConversionService,
     private readonly optimizer: AutoBudgetOptimizerService,
     private readonly performance: MarketingPerformanceService,
+    private readonly metaAds: MetaAdsService,
+    private readonly autoAction: AutoActionService,
   ) {}
 
   /**
@@ -23,19 +27,33 @@ export class MarketingController {
    */
   @Get('status')
   async getStatus() {
+    const config = this.autoAction.getConfig();
+    const todayActions = await this.autoAction.getTodayActionCount();
+    
     return {
       ok: true,
       service: 'marketing',
-      version: '1.0.0',
+      version: '2.0.0',
       features: [
         'facebook_conversion_api',
         'auto_budget_optimizer',
         'campaign_performance',
         'source_attribution',
+        'meta_ads_spend_sync',
+        'auto_actions',
       ],
       facebookCapi: {
         configured: this.facebookService.isConfigured(),
         pixelId: process.env.FB_PIXEL_ID ? '***configured***' : 'not set',
+      },
+      metaAds: {
+        configured: this.metaAds.isConfigured,
+        accountId: process.env.META_AD_ACCOUNT_ID ? '***configured***' : 'not set',
+      },
+      autoMode: {
+        enabled: config.enabled,
+        todayActions,
+        maxActionsPerDay: config.maxActionsPerDay,
       },
     };
   }
@@ -210,6 +228,223 @@ export class MarketingController {
           const order = { urgent: 0, high: 1, medium: 2, low: 3 };
           return (order[a.priority as keyof typeof order] || 3) - (order[b.priority as keyof typeof order] || 3);
         }),
+      },
+    };
+  }
+
+  // ==========================================
+  // META ADS API ENDPOINTS
+  // ==========================================
+
+  /**
+   * Get campaign spend data from Meta Ads
+   * GET /api/marketing/spend
+   */
+  @Get('spend')
+  async getSpendData() {
+    if (!this.metaAds.isConfigured) {
+      return {
+        success: false,
+        error: 'Meta Ads API not configured. Set META_ACCESS_TOKEN and META_AD_ACCOUNT_ID.',
+        data: [],
+      };
+    }
+
+    const spend = await this.autoAction.getSpendData();
+    
+    return {
+      success: true,
+      data: spend,
+    };
+  }
+
+  /**
+   * Manually sync spend data
+   * POST /api/marketing/spend/sync
+   */
+  @Post('spend/sync')
+  async syncSpendData() {
+    if (!this.metaAds.isConfigured) {
+      return {
+        success: false,
+        error: 'Meta Ads API not configured',
+      };
+    }
+
+    await this.autoAction.syncSpendData();
+    const spend = await this.autoAction.getSpendData();
+    
+    return {
+      success: true,
+      message: 'Spend data synced',
+      data: spend,
+    };
+  }
+
+  /**
+   * Get Meta Ads campaign insights directly
+   * GET /api/marketing/meta/insights?days=7
+   */
+  @Get('meta/insights')
+  async getMetaInsights(@Query('days') days: string) {
+    if (!this.metaAds.isConfigured) {
+      return {
+        success: false,
+        error: 'Meta Ads API not configured',
+        data: [],
+      };
+    }
+
+    const daysNum = parseInt(days || '7', 10);
+    const insights = await this.metaAds.getCampaignInsights(daysNum);
+    
+    return {
+      success: true,
+      data: insights,
+    };
+  }
+
+  // ==========================================
+  // AUTO ACTION ENDPOINTS
+  // ==========================================
+
+  /**
+   * Get auto mode configuration
+   * GET /api/marketing/auto/config
+   */
+  @Get('auto/config')
+  async getAutoConfig() {
+    const config = this.autoAction.getConfig();
+    const todayActions = await this.autoAction.getTodayActionCount();
+    
+    return {
+      success: true,
+      data: {
+        ...config,
+        todayActions,
+        actionsRemaining: Math.max(0, config.maxActionsPerDay - todayActions),
+      },
+    };
+  }
+
+  /**
+   * Update auto mode configuration
+   * PATCH /api/marketing/auto/config
+   */
+  @Patch('auto/config')
+  async updateAutoConfig(@Body() body: {
+    enabled?: boolean;
+    maxActionsPerDay?: number;
+    maxBudgetChangePercent?: number;
+    minSpendForDecision?: number;
+    minDataDays?: number;
+  }) {
+    const config = this.autoAction.updateConfig(body);
+    
+    return {
+      success: true,
+      message: 'Configuration updated',
+      data: config,
+    };
+  }
+
+  /**
+   * Get action history
+   * GET /api/marketing/auto/history?days=30
+   */
+  @Get('auto/history')
+  async getActionHistory(@Query('days') days: string) {
+    const daysNum = parseInt(days || '30', 10);
+    const history = await this.autoAction.getActionHistory(daysNum);
+    
+    return {
+      success: true,
+      data: history,
+    };
+  }
+
+  /**
+   * Execute action manually
+   * POST /api/marketing/auto/execute
+   */
+  @Post('auto/execute')
+  async executeAction(@Body() body: {
+    campaign: string;
+    campaignId?: string;
+    status: 'scale' | 'kill' | 'watch';
+    roi?: number;
+    profit?: number;
+    source?: string;
+    leads?: number;
+    deals?: number;
+    spend?: number;
+  }) {
+    // Build decision object
+    const decision = {
+      campaign: body.campaign,
+      source: body.source || 'manual',
+      leads: body.leads || 0,
+      deals: body.deals || 0,
+      profit: body.profit || 0,
+      spend: body.spend || 0,
+      roi: body.roi || 0,
+      status: body.status,
+      reasons: ['Manual action'],
+      actions: [`Manual ${body.status} action`],
+    };
+
+    const result = await this.autoAction.executeAction(decision, false);
+    
+    return {
+      success: result.success,
+      message: result.success ? 'Action executed' : 'Action failed',
+      data: result.action,
+    };
+  }
+
+  /**
+   * Get campaigns with ROI (spend + profit data combined)
+   * GET /api/marketing/roi?days=30
+   */
+  @Get('roi')
+  async getCampaignsWithROI(@Query('days') days: string) {
+    const daysNum = parseInt(days || '30', 10);
+    
+    // Get spend data
+    const spendData = await this.autoAction.getSpendData();
+    const spendMap = new Map(spendData.map(s => [s.campaign, s]));
+
+    // Get performance data
+    const perfResult = await this.performance.getCampaignPerformance(daysNum);
+    
+    // Merge with real spend data
+    const enrichedDecisions = perfResult.decisions.map(d => {
+      const spendRecord = spendMap.get(d.campaign);
+      const realSpend = spendRecord?.spend || d.spend || 0;
+      const realROI = realSpend > 0 ? ((d.profit - realSpend) / realSpend) * 100 : 0;
+      
+      return {
+        ...d,
+        spend: realSpend,
+        roi: Math.round(realROI * 10) / 10,
+        metaData: spendRecord ? {
+          clicks: spendRecord.clicks,
+          impressions: spendRecord.impressions,
+          cpc: spendRecord.cpc,
+          ctr: spendRecord.ctr,
+          lastSync: spendRecord.syncedAt,
+        } : null,
+      };
+    });
+
+    return {
+      success: true,
+      data: {
+        decisions: enrichedDecisions,
+        summary: {
+          ...perfResult.summary,
+          totalSpend: spendData.reduce((sum, s) => sum + s.spend, 0),
+        },
       },
     };
   }

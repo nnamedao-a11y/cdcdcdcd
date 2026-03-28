@@ -10,10 +10,11 @@ import time
 from datetime import datetime
 
 class BIBICarsAPITester:
-    def __init__(self, base_url="https://a11y-review.preview.emergentagent.com"):
+    def __init__(self, base_url="https://project-continue-48.preview.emergentagent.com"):
         self.base_url = base_url
         self.tests_run = 0
         self.tests_passed = 0
+        self.admin_token = None
 
     def run_test(self, name, method, endpoint, expected_status, data=None, headers=None):
         """Run a single API test"""
@@ -26,10 +27,13 @@ class BIBICarsAPITester:
         print(f"   URL: {url}")
         
         try:
+            response = None
             if method == 'GET':
                 response = requests.get(url, headers=headers, timeout=10)
             elif method == 'POST':
                 response = requests.post(url, json=data, headers=headers, timeout=10)
+            elif method == 'PATCH':
+                response = requests.patch(url, json=data, headers=headers, timeout=10)
 
             success = response.status_code == expected_status
             if success:
@@ -58,7 +62,7 @@ class BIBICarsAPITester:
                 except:
                     print(f"   Response: {response.text[:200]}")
 
-            return success, response.json() if response.content and response.headers.get('content-type', '').startswith('application/json') else {}
+            return success, response.json() if response and response.content and response.headers.get('content-type', '').startswith('application/json') else {}
 
         except requests.exceptions.Timeout:
             print(f"❌ Failed - Request timeout")
@@ -838,6 +842,307 @@ class BIBICarsAPITester:
             print("❌ Marketing optimize endpoint failed")
             return False
 
+    def test_marketing_meta_ads_status(self):
+        """Test Marketing status endpoint for Meta Ads features"""
+        print("\n" + "="*60)
+        print("TESTING MARKETING STATUS - META ADS FEATURES")
+        print("="*60)
+        
+        success, response = self.run_test(
+            "Marketing Status - Meta Ads Features",
+            "GET",
+            "api/marketing/status",
+            200
+        )
+        
+        if success:
+            print("✅ Marketing status endpoint is working")
+            
+            # Check for version 2.0.0
+            if response.get('version') == '2.0.0':
+                print("✅ Version 2.0.0 confirmed")
+            else:
+                print(f"❌ Expected version 2.0.0, got {response.get('version')}")
+                return False
+            
+            # Check for required features
+            features = response.get('features', [])
+            required_features = ['meta_ads_spend_sync', 'auto_actions']
+            
+            for feature in required_features:
+                if feature in features:
+                    print(f"✅ Feature '{feature}' found")
+                else:
+                    print(f"❌ Feature '{feature}' missing")
+                    return False
+            
+            # Check Meta Ads configuration status
+            meta_ads = response.get('metaAds', {})
+            print(f"   Meta Ads configured: {meta_ads.get('configured', False)}")
+            print(f"   Account ID: {meta_ads.get('accountId', 'not set')}")
+            
+            # Check auto mode status
+            auto_mode = response.get('autoMode', {})
+            print(f"   Auto mode enabled: {auto_mode.get('enabled', False)}")
+            print(f"   Today actions: {auto_mode.get('todayActions', 0)}")
+            print(f"   Max actions per day: {auto_mode.get('maxActionsPerDay', 0)}")
+            
+            return True
+        else:
+            print("❌ Marketing status endpoint failed")
+            return False
+
+    def test_marketing_auto_config_get(self):
+        """Test GET /api/marketing/auto/config"""
+        print("\n" + "="*60)
+        print("TESTING MARKETING AUTO CONFIG - GET")
+        print("="*60)
+        
+        success, response = self.run_test(
+            "Marketing Auto Config - GET",
+            "GET",
+            "api/marketing/auto/config",
+            200
+        )
+        
+        if success:
+            print("✅ Marketing auto config GET endpoint is working")
+            if 'success' in response:
+                print(f"   Success: {response['success']}")
+            if 'data' in response:
+                data = response['data']
+                print(f"   Enabled: {data.get('enabled', False)}")
+                print(f"   Max actions per day: {data.get('maxActionsPerDay', 0)}")
+                print(f"   Max budget change %: {data.get('maxBudgetChangePercent', 0)}")
+                print(f"   Min spend for decision: ${data.get('minSpendForDecision', 0)}")
+                print(f"   Today actions: {data.get('todayActions', 0)}")
+                print(f"   Actions remaining: {data.get('actionsRemaining', 0)}")
+            return True
+        else:
+            print("❌ Marketing auto config GET endpoint failed")
+            return False
+
+    def test_marketing_auto_config_patch(self):
+        """Test PATCH /api/marketing/auto/config"""
+        print("\n" + "="*60)
+        print("TESTING MARKETING AUTO CONFIG - PATCH")
+        print("="*60)
+        
+        # Test updating configuration
+        config_data = {
+            "enabled": True,
+            "maxActionsPerDay": 10,
+            "maxBudgetChangePercent": 25,
+            "minSpendForDecision": 100,
+            "minDataDays": 5
+        }
+        
+        success, response = self.run_test(
+            "Marketing Auto Config - PATCH",
+            "PATCH",
+            "api/marketing/auto/config",
+            200,
+            data=config_data
+        )
+        
+        if success:
+            print("✅ Marketing auto config PATCH endpoint is working")
+            if 'success' in response:
+                print(f"   Success: {response['success']}")
+            if 'message' in response:
+                print(f"   Message: {response['message']}")
+            if 'data' in response:
+                data = response['data']
+                print(f"   Updated config - Enabled: {data.get('enabled', False)}")
+                print(f"   Max actions per day: {data.get('maxActionsPerDay', 0)}")
+            return True
+        else:
+            print("❌ Marketing auto config PATCH endpoint failed")
+            return False
+
+    def test_marketing_spend(self):
+        """Test GET /api/marketing/spend"""
+        print("\n" + "="*60)
+        print("TESTING MARKETING SPEND DATA")
+        print("="*60)
+        
+        success, response = self.run_test(
+            "Marketing Spend Data",
+            "GET",
+            "api/marketing/spend",
+            200
+        )
+        
+        if success:
+            print("✅ Marketing spend endpoint is working")
+            if 'success' in response:
+                print(f"   Success: {response['success']}")
+            
+            # Since Meta Ads is not configured, we expect empty data or error
+            if response.get('success') == False:
+                print(f"   Expected error (Meta not configured): {response.get('error', 'No error message')}")
+                if 'Meta Ads API not configured' in response.get('error', ''):
+                    print("✅ Correctly returns error when Meta Ads not configured")
+                    return True
+            elif 'data' in response:
+                data = response['data']
+                print(f"   Spend data records: {len(data) if isinstance(data, list) else 'Not a list'}")
+                if len(data) == 0:
+                    print("✅ Empty data as expected (Meta Ads not configured)")
+                return True
+            return True
+        else:
+            print("❌ Marketing spend endpoint failed")
+            return False
+
+    def test_marketing_roi(self):
+        """Test GET /api/marketing/roi?days=30"""
+        print("\n" + "="*60)
+        print("TESTING MARKETING ROI WITH SPEND DATA")
+        print("="*60)
+        
+        success, response = self.run_test(
+            "Marketing ROI (30 days)",
+            "GET",
+            "api/marketing/roi?days=30",
+            200
+        )
+        
+        if success:
+            print("✅ Marketing ROI endpoint is working")
+            if 'success' in response:
+                print(f"   Success: {response['success']}")
+            if 'data' in response:
+                data = response['data']
+                if 'decisions' in data:
+                    decisions = data['decisions']
+                    print(f"   Campaign decisions with ROI: {len(decisions)}")
+                    for decision in decisions[:3]:  # Show first 3
+                        print(f"   - {decision.get('campaign', 'Unknown')}: ROI {decision.get('roi', 0)}%, Spend ${decision.get('spend', 0)}")
+                        if decision.get('metaData'):
+                            print(f"     Meta data: CPC ${decision['metaData'].get('cpc', 0)}, CTR {decision['metaData'].get('ctr', 0)}%")
+                if 'summary' in data:
+                    summary = data['summary']
+                    print(f"   Total spend: ${summary.get('totalSpend', 0)}")
+                    print(f"   Overall ROI: {summary.get('overallRoi', 0)}%")
+            return True
+        else:
+            print("❌ Marketing ROI endpoint failed")
+            return False
+
+    def test_marketing_auto_history(self):
+        """Test GET /api/marketing/auto/history"""
+        print("\n" + "="*60)
+        print("TESTING MARKETING AUTO ACTION HISTORY")
+        print("="*60)
+        
+        success, response = self.run_test(
+            "Marketing Auto Action History",
+            "GET",
+            "api/marketing/auto/history",
+            200
+        )
+        
+        if success:
+            print("✅ Marketing auto history endpoint is working")
+            if 'success' in response:
+                print(f"   Success: {response['success']}")
+            if 'data' in response:
+                data = response['data']
+                print(f"   Action history records: {len(data) if isinstance(data, list) else 'Not a list'}")
+                for action in data[:3]:  # Show first 3 actions
+                    print(f"   - {action.get('campaign', 'Unknown')}: {action.get('actionType', 'unknown')} (Status: {action.get('status', 'unknown')})")
+                    if action.get('reason'):
+                        print(f"     Reason: {action.get('reason')}")
+            return True
+        else:
+            print("❌ Marketing auto history endpoint failed")
+            return False
+
+    def test_marketing_auto_execute(self):
+        """Test POST /api/marketing/auto/execute"""
+        print("\n" + "="*60)
+        print("TESTING MARKETING AUTO ACTION EXECUTION")
+        print("="*60)
+        
+        # Test manual action execution
+        action_data = {
+            "campaign": "test_manual_campaign",
+            "campaignId": "test_campaign_123",
+            "status": "scale",
+            "roi": 45.5,
+            "profit": 1200,
+            "source": "facebook",
+            "leads": 8,
+            "deals": 2,
+            "spend": 150
+        }
+        
+        success, response = self.run_test(
+            "Marketing Auto Action Execute",
+            "POST",
+            "api/marketing/auto/execute",
+            200,
+            data=action_data
+        )
+        
+        if success:
+            print("✅ Marketing auto execute endpoint is working")
+            if 'success' in response:
+                print(f"   Success: {response['success']}")
+            if 'message' in response:
+                print(f"   Message: {response['message']}")
+            if 'data' in response:
+                data = response['data']
+                if data:
+                    print(f"   Action executed: {data.get('actionType', 'unknown')}")
+                    print(f"   Campaign: {data.get('campaign', 'unknown')}")
+                    print(f"   Status: {data.get('status', 'unknown')}")
+            return True
+        else:
+            print("❌ Marketing auto execute endpoint failed")
+            return False
+
+    def test_admin_login(self):
+        """Test admin login flow"""
+        print("\n" + "="*60)
+        print("TESTING ADMIN LOGIN FLOW")
+        print("="*60)
+        
+        # Test admin login
+        login_data = {
+            "email": "admin@crm.com",
+            "password": "admin123"
+        }
+        
+        success, response = self.run_test(
+            "Admin Login",
+            "POST",
+            "api/auth/login",
+            201,  # Changed from 200 to 201
+            data=login_data
+        )
+        
+        if success:
+            print("✅ Admin login endpoint is working")
+            if 'access_token' in response:
+                print("✅ JWT token received")
+                self.admin_token = response['access_token']
+                return True
+            elif 'token' in response:
+                print("✅ JWT token received")
+                self.admin_token = response['token']
+                return True
+            elif 'success' in response and response['success']:
+                print("✅ Login successful")
+                return True
+            else:
+                print("❌ Login response missing token")
+                return False
+        else:
+            print("❌ Admin login endpoint failed")
+            return False
+
     def test_homepage_loading(self):
         """Test if homepage loads correctly"""
         print("\n" + "="*60)
@@ -867,18 +1172,22 @@ def main():
     
     # Run all tests
     try:
-        # Test Marketing Module endpoints (PRIORITY)
+        # Test Admin Login first
+        admin_login = tester.test_admin_login()
+        
+        # Test Marketing Module endpoints (PRIORITY - Meta Ads API Integration)
         marketing_status = tester.test_marketing_status()
+        marketing_meta_ads_status = tester.test_marketing_meta_ads_status()
+        marketing_auto_config_get = tester.test_marketing_auto_config_get()
+        marketing_auto_config_patch = tester.test_marketing_auto_config_patch()
+        marketing_spend = tester.test_marketing_spend()
+        marketing_roi = tester.test_marketing_roi()
+        marketing_auto_history = tester.test_marketing_auto_history()
+        marketing_auto_execute = tester.test_marketing_auto_execute()
         marketing_campaigns = tester.test_marketing_campaigns()
         marketing_sources = tester.test_marketing_sources()
         marketing_recommendations = tester.test_marketing_recommendations()
         marketing_optimize = tester.test_marketing_optimize()
-        
-        # Test Revenue AI endpoints
-        revenue_ai_status = tester.test_revenue_ai_status()
-        revenue_ai_intent = tester.test_revenue_ai_intent()
-        revenue_ai_price = tester.test_revenue_ai_price()
-        revenue_ai_margin = tester.test_revenue_ai_margin()
         
         # Test Analytics endpoints
         analytics_status = tester.test_analytics_status()
@@ -886,6 +1195,12 @@ def main():
         analytics_kpi = tester.test_analytics_kpi()
         analytics_funnel = tester.test_analytics_funnel()
         analytics_track = tester.test_analytics_track()
+        
+        # Test Revenue AI endpoints
+        revenue_ai_status = tester.test_revenue_ai_status()
+        revenue_ai_intent = tester.test_revenue_ai_intent()
+        revenue_ai_price = tester.test_revenue_ai_price()
+        revenue_ai_margin = tester.test_revenue_ai_margin()
         
         # Test Telegram bot status and webhook
         telegram_status = tester.test_telegram_bot_status()
@@ -909,20 +1224,24 @@ def main():
         print(f"Tests Passed: {tester.tests_passed}")
         print(f"Success Rate: {(tester.tests_passed/tester.tests_run*100):.1f}%")
         
-        # Marketing Module results (PRIORITY)
-        print("\n🎯 Marketing Module Results:")
+        # Admin Login results
+        print("\n🔐 Admin Login Results:")
+        print(f"   Admin Login: {'✅' if admin_login else '❌'}")
+        
+        # Marketing Module results (PRIORITY - Meta Ads API Integration)
+        print("\n🎯 Marketing Module Results (Meta Ads API Integration):")
         print(f"   Status Endpoint: {'✅' if marketing_status else '❌'}")
+        print(f"   Meta Ads Features (v2.0.0): {'✅' if marketing_meta_ads_status else '❌'}")
+        print(f"   Auto Config GET: {'✅' if marketing_auto_config_get else '❌'}")
+        print(f"   Auto Config PATCH: {'✅' if marketing_auto_config_patch else '❌'}")
+        print(f"   Spend Data: {'✅' if marketing_spend else '❌'}")
+        print(f"   ROI with Spend: {'✅' if marketing_roi else '❌'}")
+        print(f"   Auto Action History: {'✅' if marketing_auto_history else '❌'}")
+        print(f"   Auto Action Execute: {'✅' if marketing_auto_execute else '❌'}")
         print(f"   Campaigns Performance: {'✅' if marketing_campaigns else '❌'}")
         print(f"   Sources Summary: {'✅' if marketing_sources else '❌'}")
         print(f"   Recommendations: {'✅' if marketing_recommendations else '❌'}")
         print(f"   Optimize Campaigns: {'✅' if marketing_optimize else '❌'}")
-        
-        # Revenue AI results
-        print("\n💰 Revenue AI Results:")
-        print(f"   Status Endpoint: {'✅' if revenue_ai_status else '❌'}")
-        print(f"   Intent Scoring: {'✅' if revenue_ai_intent else '❌'}")
-        print(f"   Dynamic Pricing: {'✅' if revenue_ai_price else '❌'}")
-        print(f"   Optimal Margin: {'✅' if revenue_ai_margin else '❌'}")
         
         # Analytics results
         print("\n📊 Analytics Results:")
@@ -931,6 +1250,13 @@ def main():
         print(f"   KPI Metrics: {'✅' if analytics_kpi else '❌'}")
         print(f"   Funnel Data: {'✅' if analytics_funnel else '❌'}")
         print(f"   Event Tracking: {'✅' if analytics_track else '❌'}")
+        
+        # Revenue AI results
+        print("\n💰 Revenue AI Results:")
+        print(f"   Status Endpoint: {'✅' if revenue_ai_status else '❌'}")
+        print(f"   Intent Scoring: {'✅' if revenue_ai_intent else '❌'}")
+        print(f"   Dynamic Pricing: {'✅' if revenue_ai_price else '❌'}")
+        print(f"   Optimal Margin: {'✅' if revenue_ai_margin else '❌'}")
         
         # AI Recommendations results
         print("\n🧠 AI Recommendations Engine Results:")
@@ -948,11 +1274,25 @@ def main():
         print("\n🏠 Other Results:")
         print(f"   Homepage Loading: {'✅' if homepage_success else '❌'}")
         
-        # Calculate marketing module success rate
-        marketing_tests = [marketing_status, marketing_campaigns, marketing_sources, marketing_recommendations, marketing_optimize]
+        # Calculate Meta Ads API integration success rate
+        meta_ads_tests = [
+            marketing_meta_ads_status, marketing_auto_config_get, marketing_auto_config_patch,
+            marketing_spend, marketing_roi, marketing_auto_history, marketing_auto_execute
+        ]
+        meta_ads_success_rate = sum(meta_ads_tests) / len(meta_ads_tests) * 100
+        
+        print(f"\n🎯 Meta Ads API Integration Success Rate: {meta_ads_success_rate:.1f}%")
+        
+        # Calculate overall marketing module success rate
+        marketing_tests = [
+            marketing_status, marketing_meta_ads_status, marketing_auto_config_get, 
+            marketing_auto_config_patch, marketing_spend, marketing_roi, 
+            marketing_auto_history, marketing_auto_execute, marketing_campaigns, 
+            marketing_sources, marketing_recommendations, marketing_optimize
+        ]
         marketing_success_rate = sum(marketing_tests) / len(marketing_tests) * 100
         
-        print(f"\n🎯 Marketing Module Success Rate: {marketing_success_rate:.1f}%")
+        print(f"🎯 Overall Marketing Module Success Rate: {marketing_success_rate:.1f}%")
         
         if tester.tests_passed >= tester.tests_run * 0.8:  # 80% success rate
             print("🎉 Most tests passed!")
