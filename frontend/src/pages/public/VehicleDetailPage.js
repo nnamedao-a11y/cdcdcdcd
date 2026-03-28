@@ -5,7 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   ArrowLeft, 
@@ -19,7 +19,8 @@ import {
   Warning,
   Fire,
   Share,
-  Heart
+  Heart,
+  Calculator
 } from '@phosphor-icons/react';
 import AuctionTimer from '../../components/public/AuctionTimer';
 
@@ -27,10 +28,12 @@ const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
 
 const VehicleDetailPage = () => {
   const { id, slug } = useParams();
+  const navigate = useNavigate();
   const [vehicle, setVehicle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [showLeadForm, setShowLeadForm] = useState(false);
+  const [showCalculator, setShowCalculator] = useState(false);
 
   useEffect(() => {
     fetchVehicle();
@@ -305,6 +308,15 @@ const VehicleDetailPage = () => {
                 Хочу купити
               </button>
 
+              <button
+                onClick={() => setShowCalculator(true)}
+                className="w-full mt-3 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2"
+                data-testid="calculate-btn"
+              >
+                <Calculator size={20} />
+                Розрахувати вартість
+              </button>
+
               <Link
                 to={`/vin-check/${vehicle.vin}`}
                 className="w-full mt-3 border border-zinc-200 text-zinc-700 py-3 rounded-lg font-semibold hover:bg-zinc-50 transition-colors flex items-center justify-center gap-2"
@@ -325,6 +337,18 @@ const VehicleDetailPage = () => {
         <LeadFormModal 
           vehicle={vehicle} 
           onClose={() => setShowLeadForm(false)} 
+        />
+      )}
+
+      {/* Calculator Modal */}
+      {showCalculator && (
+        <CalculatorModal 
+          vehicle={vehicle} 
+          onClose={() => setShowCalculator(false)}
+          onBuy={() => {
+            setShowCalculator(false);
+            setShowLeadForm(true);
+          }}
         />
       )}
     </div>
@@ -507,6 +531,211 @@ UTM: ${utm.source}/${utm.campaign}
         >
           Скасувати
         </button>
+      </div>
+    </div>
+  );
+};
+
+// Calculator Modal Component
+const CalculatorModal = ({ vehicle, onClose, onBuy }) => {
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState('');
+  const [settings, setSettings] = useState({
+    port: 'NJ',
+    vehicleType: 'sedan'
+  });
+  const [ports, setPorts] = useState([]);
+  const [vehicleTypes, setVehicleTypes] = useState([]);
+
+  useEffect(() => {
+    fetchPorts();
+  }, []);
+
+  const fetchPorts = async () => {
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+      const res = await axios.get(`${API_URL}/api/calculator/ports`);
+      setPorts(res.data.ports || []);
+      setVehicleTypes(res.data.vehicleTypes || []);
+    } catch (err) {
+      console.error('Error fetching ports:', err);
+      // Fallback defaults
+      setPorts([
+        { code: 'NJ', name: 'New Jersey' },
+        { code: 'GA', name: 'Georgia (Savannah)' },
+        { code: 'TX', name: 'Texas (Houston)' },
+        { code: 'CA', name: 'California (Long Beach)' }
+      ]);
+      setVehicleTypes([
+        { code: 'sedan', name: 'Седан' },
+        { code: 'suv', name: 'SUV' },
+        { code: 'bigSUV', name: 'Великий SUV' },
+        { code: 'pickup', name: 'Пікап' }
+      ]);
+    }
+  };
+
+  const handleCalculate = async () => {
+    setLoading(true);
+    setError('');
+    setResult(null);
+
+    try {
+      const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+      const res = await axios.post(`${API_URL}/api/calculator/calculate`, {
+        vin: vehicle.vin,
+        price: vehicle.price || 10000,
+        port: settings.port,
+        vehicleType: settings.vehicleType,
+        vehicleTitle: vehicle.title || `${vehicle.make} ${vehicle.model}`
+      });
+      
+      setResult(res.data);
+      
+      // Track analytics
+      if (window.trackEvent) {
+        window.trackEvent('calculator_used', {
+          vin: vehicle.vin,
+          price: vehicle.price,
+          result: res.data.finalPrice || res.data.recommended?.finalPrice
+        });
+      }
+    } catch (err) {
+      console.error('Calculator error:', err);
+      setError('Помилка розрахунку. Спробуйте ще раз.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-xl font-bold text-zinc-900">Калькулятор доставки</h3>
+          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-900">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        
+        <div className="p-3 bg-zinc-100 rounded-lg mb-6">
+          <p className="text-sm text-zinc-600">{vehicle.title || `${vehicle.make} ${vehicle.model}`}</p>
+          <p className="text-xs text-zinc-400 font-mono">VIN: {vehicle.vin}</p>
+          {vehicle.price && (
+            <p className="text-lg font-bold text-zinc-900 mt-1">Ціна аукціону: ${vehicle.price.toLocaleString()}</p>
+          )}
+        </div>
+
+        <div className="space-y-4 mb-6">
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-2">Порт відправки (США)</label>
+            <select
+              value={settings.port}
+              onChange={e => setSettings({...settings, port: e.target.value})}
+              className="w-full px-4 py-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              data-testid="port-select"
+            >
+              {ports.map(port => (
+                <option key={port.code} value={port.code}>{port.name}</option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-zinc-700 mb-2">Тип авто</label>
+            <select
+              value={settings.vehicleType}
+              onChange={e => setSettings({...settings, vehicleType: e.target.value})}
+              className="w-full px-4 py-3 border border-zinc-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+              data-testid="vehicle-type-select"
+            >
+              {vehicleTypes.map(type => (
+                <option key={type.code} value={type.code}>{type.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <button
+          onClick={handleCalculate}
+          disabled={loading}
+          className="w-full bg-blue-600 text-white py-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 flex items-center justify-center gap-2 mb-4"
+          data-testid="calculate-submit-btn"
+        >
+          {loading ? (
+            <>
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              Розраховую...
+            </>
+          ) : (
+            <>
+              <Calculator size={20} />
+              Розрахувати
+            </>
+          )}
+        </button>
+
+        {error && (
+          <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm mb-4">
+            {error}
+          </div>
+        )}
+
+        {result && (
+          <div className="border border-zinc-200 rounded-lg overflow-hidden" data-testid="calculator-result">
+            <div className="bg-zinc-50 p-4 border-b border-zinc-200">
+              <p className="text-sm text-zinc-500">Загальна вартість під ключ</p>
+              <p className="text-3xl font-bold text-green-600">
+                ${(result.totals?.visible || result.finalPrice || 0).toLocaleString()}
+              </p>
+            </div>
+            
+            <div className="p-4 space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-zinc-500">Ціна авто</span>
+                <span className="font-medium">${(result.breakdown?.carPrice || vehicle.price || 0).toLocaleString()}</span>
+              </div>
+              {result.breakdown?.auctionFee && (
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Аукціонний збір</span>
+                  <span className="font-medium">${result.breakdown.auctionFee.toLocaleString()}</span>
+                </div>
+              )}
+              {(result.breakdown?.usaInland || result.breakdown?.ocean) && (
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Доставка (США + море)</span>
+                  <span className="font-medium">${((result.breakdown?.usaInland || 0) + (result.breakdown?.ocean || 0)).toLocaleString()}</span>
+                </div>
+              )}
+              {result.breakdown?.euDelivery && (
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Доставка в Європу</span>
+                  <span className="font-medium">${result.breakdown.euDelivery.toLocaleString()}</span>
+                </div>
+              )}
+              {result.breakdown?.customs && (
+                <div className="flex justify-between">
+                  <span className="text-zinc-500">Митні платежі</span>
+                  <span className="font-medium">${result.breakdown.customs.toLocaleString()}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 border-t border-zinc-200">
+              <button
+                onClick={onBuy}
+                className="w-full bg-zinc-900 text-white py-3 rounded-lg font-semibold hover:bg-zinc-800 flex items-center justify-center gap-2"
+                data-testid="buy-after-calc-btn"
+              >
+                <Phone size={18} />
+                Хочу купити це авто
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

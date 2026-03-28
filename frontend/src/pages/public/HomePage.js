@@ -22,17 +22,75 @@ const HomePage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [hotRes, endingRes, upcomingRes, statsRes] = await Promise.all([
-          axios.get(`${API_URL}/api/auction-ranking/hot?limit=8`),
-          axios.get(`${API_URL}/api/auction-ranking/ending-soon?limit=8`),
-          axios.get(`${API_URL}/api/auction-ranking/upcoming?limit=8`),
-          axios.get(`${API_URL}/api/auction-ranking/stats`),
-        ]);
+        // Try auction-ranking API first
+        let useAuctionRanking = true;
+        let statsData = { total: 0, active: 0, upcoming: 0, hot: 0 };
+        
+        try {
+          const statsRes = await axios.get(`${API_URL}/api/auction-ranking/stats`);
+          statsData = statsRes.data || statsData;
+          
+          // If no auctions, fall back to public vehicles
+          if (statsData.total === 0) {
+            useAuctionRanking = false;
+          }
+        } catch {
+          useAuctionRanking = false;
+        }
 
-        setHotAuctions(hotRes.data || []);
-        setEndingSoon(endingRes.data || []);
-        setUpcoming(upcomingRes.data || []);
-        setStats(statsRes.data);
+        if (useAuctionRanking) {
+          // Use auction-ranking API
+          const [hotRes, endingRes, upcomingRes] = await Promise.all([
+            axios.get(`${API_URL}/api/auction-ranking/hot?limit=8`),
+            axios.get(`${API_URL}/api/auction-ranking/ending-soon?limit=8`),
+            axios.get(`${API_URL}/api/auction-ranking/upcoming?limit=8`),
+          ]);
+
+          setHotAuctions(hotRes.data || []);
+          setEndingSoon(endingRes.data || []);
+          setUpcoming(upcomingRes.data || []);
+          setStats(statsData);
+        } else {
+          // Fallback to public vehicles API
+          const vehiclesRes = await axios.get(`${API_URL}/api/public/vehicles?limit=12`);
+          const vehicles = vehiclesRes.data?.data || vehiclesRes.data || [];
+          
+          // Transform vehicles to auction format for display
+          const transformedVehicles = vehicles.map(v => ({
+            ...v,
+            _id: v.id || v._id,
+            auctionDate: v.saleDate || v.auctionDate,
+            rankingScore: v.score ? v.score / 100 : 0.7,
+          }));
+
+          // Split vehicles into categories
+          const now = new Date();
+          const in48h = new Date(now.getTime() + 48 * 60 * 60 * 1000);
+          
+          const ending = transformedVehicles.filter(v => {
+            const date = new Date(v.auctionDate);
+            return date >= now && date <= in48h;
+          });
+          
+          const future = transformedVehicles.filter(v => {
+            const date = new Date(v.auctionDate);
+            return date > in48h;
+          });
+          
+          // Show all as "hot" if no auction dates
+          const hot = transformedVehicles.filter(v => v.rankingScore >= 0.5).slice(0, 8);
+
+          setHotAuctions(hot.length > 0 ? hot : transformedVehicles.slice(0, 8));
+          setEndingSoon(ending);
+          setUpcoming(future.length > 0 ? future : transformedVehicles.slice(0, 4));
+          
+          setStats({
+            total: vehicles.length,
+            active: vehicles.length,
+            upcoming: future.length,
+            hot: hot.length || vehicles.length
+          });
+        }
       } catch (err) {
         console.error('Error fetching auctions:', err);
       } finally {
