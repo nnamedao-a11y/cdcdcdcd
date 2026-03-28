@@ -1,0 +1,121 @@
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { MongooseModule } from '@nestjs/mongoose';
+import { ScheduleModule } from '@nestjs/schedule';
+import { BootstrapModule } from './bootstrap/bootstrap.module';
+import { AuthModule } from './modules/auth/auth.module';
+import { UsersModule } from './modules/users/users.module';
+import { RolesModule } from './modules/roles/roles.module';
+import { LeadsModule } from './modules/leads/leads.module';
+import { CustomersModule } from './modules/customers/customers.module';
+import { DealsModule } from './modules/deals/deals.module';
+import { DepositsModule } from './modules/deposits/deposits.module';
+import { TasksModule } from './modules/tasks/tasks.module';
+import { NotesModule } from './modules/notes/notes.module';
+import { TagsModule } from './modules/tags/tags.module';
+import { StaffModule } from './modules/staff/staff.module';
+import { NotificationsModule } from './modules/notifications/notifications.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { AuditLogModule } from './modules/audit-log/audit-log.module';
+import { SettingsModule } from './modules/settings/settings.module';
+import { RemindersModule } from './modules/reminders/reminders.module';
+import { QueueModule } from './infrastructure/queue/queue.module';
+import { AutomationModule } from './modules/automation/automation.module';
+import { CallCenterModule } from './modules/call-center/call-center.module';
+import { CommunicationsModule } from './modules/communications/communications.module';
+import { ExportModule } from './modules/export/export.module';
+import { LeadRoutingModule } from './modules/lead-routing/lead-routing.module';
+import { FilesModule } from './modules/files/files.module';
+import { DocumentsModule } from './modules/documents/documents.module';
+import { ActivityModule } from './modules/activity/activity.module';
+import { IngestionModule } from './modules/ingestion/ingestion.module';
+import { IngestionAdminModule } from './modules/ingestion/admin/ingestion-admin.module';
+import { PipelineModule } from './modules/pipeline/pipeline.module';
+import { VinEngineModule } from './modules/vin-engine/vin-engine.module';
+import { SourceRegistryModule } from './modules/source-registry/source-registry.module';
+import { SourceDiscoveryModule } from './modules/source-discovery/source-discovery.module';
+import { CompetitorParsingModule } from './modules/competitor-parsing/competitor-parsing.module';
+import { AuctionRankingModule } from './modules/auction-ranking/auction-ranking.module';
+import { CalculatorModule } from './modules/calculator/calculator.module';
+import { QuoteAnalyticsModule } from './modules/analytics/quote-analytics.module';
+import { DomainEventsModule } from './infrastructure/events/domain-events.module';
+import { PublishingModule } from './modules/publishing/publishing.module';
+import { CustomerCabinetModule } from './modules/customer-cabinet/customer-cabinet.module';
+import { AiModule } from './modules/ai/ai.module';
+import { CustomerAuthModule } from './modules/customer-auth/customer-auth.module';
+import { AiSeoModule } from './modules/ai-seo/ai-seo.module';
+import { TelegramBotModule } from './modules/telegram-bot/telegram-bot.module';
+import { ViberBotModule } from './modules/viber-bot/viber.module';
+import { NotificationOrchestratorModule } from './modules/notification-orchestrator/notification-orchestrator.module';
+import { RecommendationsModule } from './modules/recommendations/recommendations.module';
+import { RevenueAiModule } from './modules/revenue-ai/revenue-ai.module';
+import { AnalyticsTrackingModule } from './modules/analytics-tracking/analytics-tracking.module';
+import { MarketingModule } from './modules/marketing/marketing.module';
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
+    ScheduleModule.forRoot(),
+    MongooseModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        uri: configService.get<string>('MONGO_URL'),
+        dbName: configService.get<string>('DB_NAME'),
+      }),
+      inject: [ConfigService],
+    }),
+    BootstrapModule,
+    QueueModule,
+    AuthModule,
+    UsersModule,
+    RolesModule,
+    LeadsModule,
+    CustomersModule,
+    DealsModule,
+    DepositsModule,
+    TasksModule,
+    NotesModule,
+    TagsModule,
+    StaffModule,
+    NotificationsModule,
+    DashboardModule,
+    AuditLogModule,
+    SettingsModule,
+    RemindersModule,
+    AutomationModule,
+    CallCenterModule,
+    CommunicationsModule,
+    ExportModule,
+    LeadRoutingModule,
+    FilesModule,
+    DocumentsModule,
+    ActivityModule,
+    IngestionModule,
+    IngestionAdminModule,
+    PipelineModule,
+    VinEngineModule,
+    SourceRegistryModule,
+    SourceDiscoveryModule,
+    CompetitorParsingModule,
+    AuctionRankingModule,
+    CalculatorModule,
+    QuoteAnalyticsModule,
+    DomainEventsModule,
+    PublishingModule,
+    CustomerCabinetModule,
+    AiModule,
+    CustomerAuthModule,
+    AiSeoModule,
+    TelegramBotModule,
+    ViberBotModule,
+    NotificationOrchestratorModule,
+    RecommendationsModule,
+    RevenueAiModule,
+    AnalyticsTrackingModule,
+    MarketingModule,
+  ],
+})
+export class AppModule {}
