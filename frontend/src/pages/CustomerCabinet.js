@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link, Outlet, useLocation } from 'react-router-dom';
+import { useParams, Link, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { API_URL } from '../App';
 import { toast } from 'sonner';
@@ -19,8 +19,11 @@ import {
   ChatCircle,
   ArrowRight,
   Warning,
-  Bell
+  Bell,
+  SignOut,
+  ArrowLeft
 } from '@phosphor-icons/react';
+import { useCustomerAuth } from './public/CustomerAuth';
 
 /**
  * Customer Cabinet - Client Process Center
@@ -43,11 +46,19 @@ const NAV_ITEMS = [
 export const CabinetLayout = () => {
   const { customerId } = useParams();
   const location = useLocation();
+  const navigate = useNavigate();
+  const { logout, customer } = useCustomerAuth();
   const basePath = `/cabinet/${customerId}`;
 
   const isActive = (path) => {
     const fullPath = path ? `${basePath}/${path}` : basePath;
     return location.pathname === fullPath || (path && location.pathname.startsWith(`${basePath}/${path}`));
+  };
+
+  const handleLogout = async () => {
+    await logout();
+    navigate('/');
+    toast.success('Ви вийшли з кабінету');
   };
 
   return (
@@ -81,6 +92,26 @@ export const CabinetLayout = () => {
               );
             })}
           </nav>
+
+          {/* Back to site & Logout */}
+          <div className="mt-6 pt-4 border-t border-[#E4E4E7] space-y-2">
+            <Link
+              to="/"
+              className="flex items-center gap-3 px-4 py-3 rounded-xl text-[#71717A] hover:bg-[#F4F4F5] hover:text-[#18181B] transition-all"
+              data-testid="back-to-site"
+            >
+              <ArrowLeft size={20} />
+              <span className="font-medium">На сайт</span>
+            </Link>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 transition-all"
+              data-testid="logout-btn"
+            >
+              <SignOut size={20} />
+              <span className="font-medium">Вийти</span>
+            </button>
+          </div>
         </aside>
 
         {/* Main Content */}
