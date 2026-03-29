@@ -1,12 +1,12 @@
 /**
- * Marketing Control Panel
+ * Маркетинг-контроль
  * 
  * Full admin UI for marketing automation:
- * - Auto Mode Control
- * - Campaign Actions (Scale/Kill/Watch)
- * - Spend Sync Status
- * - Decision Log
- * - Action History
+ * - Авто-режим
+ * - Дії кампаній (Scale/Kill/Watch)
+ * - Статус синхронізації
+ * - Журнал рішень
+ * - Історія дій
  * - ROI Tracking
  */
 
@@ -72,7 +72,7 @@ const ActionButton = ({ onClick, variant, children, disabled, loading }) => {
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
           </svg>
-          Processing...
+          Обробка...
         </span>
       ) : children}
     </button>
@@ -142,7 +142,7 @@ const AutoModePanel = ({ config, onUpdate, loading }) => {
     setLocalConfig({ ...localConfig, enabled: newEnabled });
     try {
       await onUpdate({ enabled: newEnabled });
-      toast.success(newEnabled ? 'Auto Mode увімкнено' : 'Auto Mode вимкнено');
+      toast.success(newEnabled ? 'Авто-режим увімкнено' : 'Авто-режим вимкнено');
     } catch (err) {
       toast.error('Помилка');
       setLocalConfig({ ...localConfig, enabled: !newEnabled });
@@ -151,7 +151,7 @@ const AutoModePanel = ({ config, onUpdate, loading }) => {
 
   if (loading) {
     return (
-      <Card title="Auto Mode Control">
+      <Card title="Авто-режим">
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
         </div>
@@ -160,12 +160,12 @@ const AutoModePanel = ({ config, onUpdate, loading }) => {
   }
 
   return (
-    <Card title="Auto Mode Control">
+    <Card title="Авто-режим">
       <div className="space-y-6">
         {/* Main Toggle */}
         <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
           <div>
-            <p className="font-semibold text-gray-900">Auto Mode</p>
+            <p className="font-semibold text-gray-900">Авто-режим</p>
             <p className="text-sm text-gray-500">Автоматичне керування кампаніями</p>
           </div>
           <button
@@ -182,22 +182,22 @@ const AutoModePanel = ({ config, onUpdate, loading }) => {
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center p-3 bg-blue-50 rounded-lg">
             <p className="text-2xl font-bold text-blue-600">{config.todayActions || 0}</p>
-            <p className="text-xs text-blue-600">Actions Today</p>
+            <p className="text-xs text-blue-600">Дій сьогодні</p>
           </div>
           <div className="text-center p-3 bg-emerald-50 rounded-lg">
-            <p className="text-2xl font-bold text-emerald-600">{config.actionsRemaining || config.maxActionsPerDay}</p>
-            <p className="text-xs text-emerald-600">Remaining</p>
+            <p className="text-2xl font-bold text-emerald-600">{config.actionsЗалишилось || config.maxActionsPerDay}</p>
+            <p className="text-xs text-emerald-600">Залишилось</p>
           </div>
           <div className="text-center p-3 bg-amber-50 rounded-lg">
             <p className="text-2xl font-bold text-amber-600">{config.maxActionsPerDay}</p>
-            <p className="text-xs text-amber-600">Daily Limit</p>
+            <p className="text-xs text-amber-600">Денний ліміт</p>
           </div>
         </div>
 
         {/* Settings */}
         <div className="space-y-4">
           <div>
-            <label className="text-sm font-medium text-gray-700">Max Actions Per Day</label>
+            <label className="text-sm font-medium text-gray-700">Максимум дій на день</label>
             <input
               type="number"
               value={localConfig.maxActionsPerDay}
@@ -263,7 +263,7 @@ const CampaignActionsTable = ({ campaigns, onAction, loading }) => {
 
   if (!campaigns || campaigns.length === 0) {
     return (
-      <Card title="Campaign Actions">
+      <Card title="Дії кампаній">
         <p className="text-gray-500 text-center py-8">No campaign data available</p>
       </Card>
     );
@@ -271,7 +271,7 @@ const CampaignActionsTable = ({ campaigns, onAction, loading }) => {
 
   return (
     <Card 
-      title="Campaign Actions" 
+      title="Дії кампаній" 
       action={<span className="text-sm text-gray-500">{campaigns.length} campaigns</span>}
     >
       <div className="overflow-x-auto">
@@ -406,7 +406,7 @@ const SpendSyncStatus = ({ metaAds, onSync, loading }) => {
 const DecisionLog = ({ decisions, loading }) => {
   if (loading) {
     return (
-      <Card title="Decision Log">
+      <Card title="Журнал рішень">
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
         </div>
@@ -416,7 +416,7 @@ const DecisionLog = ({ decisions, loading }) => {
 
   if (!decisions || decisions.length === 0) {
     return (
-      <Card title="Decision Log">
+      <Card title="Журнал рішень">
         <p className="text-gray-500 text-center py-8">No decisions logged yet</p>
       </Card>
     );
@@ -424,7 +424,7 @@ const DecisionLog = ({ decisions, loading }) => {
 
   return (
     <Card 
-      title="Decision Log" 
+      title="Журнал рішень" 
       action={<span className="text-sm text-gray-500">Why system made each decision</span>}
     >
       <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -461,7 +461,7 @@ const DecisionLog = ({ decisions, loading }) => {
 const ActionHistory = ({ history, loading }) => {
   if (loading) {
     return (
-      <Card title="Action History">
+      <Card title="Історія дій">
         <div className="flex items-center justify-center py-8">
           <div className="animate-spin w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full" />
         </div>
@@ -471,7 +471,7 @@ const ActionHistory = ({ history, loading }) => {
 
   if (!history || history.length === 0) {
     return (
-      <Card title="Action History">
+      <Card title="Історія дій">
         <p className="text-gray-500 text-center py-8">No actions executed yet</p>
       </Card>
     );
@@ -479,7 +479,7 @@ const ActionHistory = ({ history, loading }) => {
 
   return (
     <Card 
-      title="Action History" 
+      title="Історія дій" 
       action={<span className="text-sm text-gray-500">{history.length} actions</span>}
     >
       <div className="overflow-x-auto">
@@ -684,7 +684,7 @@ const MarketingControlPanel = () => {
       <div className="bg-white border-b border-gray-200 px-6 py-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Marketing Control Panel</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Маркетинг-контроль</h1>
             <p className="text-sm text-gray-500">
               v{status?.version || '2.0.0'} • {status?.features?.length || 0} features active
             </p>

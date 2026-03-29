@@ -21,7 +21,19 @@ import {
   CaretUp,
   ChartLine,
   Megaphone,
-  ChartBar
+  ChartBar,
+  UserPlus,
+  CreditCard,
+  Receipt,
+  Car,
+  Barcode,
+  Percent,
+  Users,
+  ListChecks,
+  Sliders,
+  Wrench,
+  TrendUp,
+  Target
 } from '@phosphor-icons/react';
 
 const Layout = () => {
@@ -68,7 +80,7 @@ const Layout = () => {
       label: 'CRM',
       icon: UsersThree,
       items: [
-        { path: '/admin/leads', icon: UsersThree, label: 'Ліди' },
+        { path: '/admin/leads', icon: UserPlus, label: 'Ліди' },
         { path: '/admin/customers', icon: UserCircle, label: 'Клієнти' },
         { path: '/admin/deals', icon: Handshake, label: 'Угоди' },
       ]
@@ -79,8 +91,8 @@ const Layout = () => {
       label: 'Фінанси',
       icon: Wallet,
       items: [
-        { path: '/admin/deposits', icon: Wallet, label: 'Депозити' },
-        { path: '/admin/documents', icon: FileText, label: 'Документи' },
+        { path: '/admin/deposits', icon: CreditCard, label: 'Депозити' },
+        { path: '/admin/documents', icon: Receipt, label: 'Документи' },
       ]
     },
     {
@@ -89,10 +101,10 @@ const Layout = () => {
       label: 'Авто',
       icon: CarProfile,
       items: [
-        { path: '/admin/vehicles', icon: CarProfile, label: 'База авто' },
-        { path: '/admin/vin', icon: MagnifyingGlass, label: 'VIN Пошук' },
-        { path: '/admin/calculator', icon: Calculator, label: 'Калькулятор' },
-        { path: '/admin/analytics/quotes', icon: ChartLine, label: 'Quote Analytics' },
+        { path: '/admin/vehicles', icon: Car, label: 'База авто' },
+        { path: '/admin/vin', icon: Barcode, label: 'VIN Пошук' },
+        { path: '/admin/calculator', icon: Percent, label: 'Калькулятор' },
+        { path: '/admin/analytics/quotes', icon: TrendUp, label: 'Аналітика квот' },
       ],
       roles: ['master_admin', 'moderator']
     },
@@ -100,20 +112,20 @@ const Layout = () => {
       id: 'team',
       type: 'group',
       label: 'Команда',
-      icon: UsersFour,
+      icon: Users,
       items: [
         { path: '/admin/staff', icon: UsersFour, label: 'Співробітники' },
-        { path: '/admin/tasks', icon: ClipboardText, label: 'Завдання' },
+        { path: '/admin/tasks', icon: ListChecks, label: 'Завдання' },
       ]
     },
     {
       id: 'settings',
       type: 'group',
       label: 'Налаштування',
-      icon: GearSix,
+      icon: Sliders,
       items: [
         { path: '/admin/parser', icon: Database, label: 'Парсер' },
-        { path: '/admin/settings', icon: GearSix, label: 'Система' },
+        { path: '/admin/settings', icon: Wrench, label: 'Система' },
       ],
       roles: ['master_admin', 'moderator']
     },
@@ -123,8 +135,8 @@ const Layout = () => {
       label: 'Маркетинг',
       icon: Megaphone,
       items: [
-        { path: '/admin/analytics', icon: ChartBar, label: 'Analytics' },
-        { path: '/admin/marketing', icon: Megaphone, label: 'Marketing Control' },
+        { path: '/admin/analytics', icon: ChartBar, label: 'Аналітика' },
+        { path: '/admin/marketing', icon: Target, label: 'Маркетинг-контроль' },
       ],
       roles: ['master_admin', 'moderator', 'admin']
     }

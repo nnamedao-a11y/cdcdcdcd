@@ -78,7 +78,7 @@ const Dashboard = () => {
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-[#18181B]" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-            Control Dashboard
+            Панель контролю
           </h1>
           <p className="text-sm text-[#71717A] mt-1">
             Оновлено: {new Date(masterData.generatedAt).toLocaleString('uk-UA')}
