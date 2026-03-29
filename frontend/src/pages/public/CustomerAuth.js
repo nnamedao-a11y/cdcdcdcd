@@ -1,12 +1,13 @@
 /**
  * Customer Auth Context and Login Page
  * 
- * Google OAuth (1-click) + Legacy email/password
+ * Native Google OAuth with original Google popup
  * REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
  */
 
-import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
+import React, { useState, useEffect, createContext, useContext } from 'react';
 import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import axios from 'axios';
 import { 
   User, 
@@ -16,11 +17,13 @@ import {
   EyeSlash, 
   ArrowLeft,
   Warning,
-  SpinnerGap,
-  GoogleLogo
+  SpinnerGap
 } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+
+// Google OAuth Client ID - user needs to provide this
+const GOOGLE_CLIENT_ID = process.env.REACT_APP_GOOGLE_CLIENT_ID || '';
 
 // ============ AUTH CONTEXT ============
 
@@ -31,21 +34,14 @@ export const useCustomerAuth = () => useContext(CustomerAuthContext);
 export const CustomerAuthProvider = ({ children }) => {
   const [customer, setCustomer] = useState(null);
   const [loading, setLoading] = useState(true);
-  const location = useLocation();
 
   useEffect(() => {
-    // CRITICAL: If returning from OAuth callback, skip the /me check
-    // AuthCallback will exchange the session_id and establish the session first
-    if (window.location.hash?.includes('session_id=')) {
-      setLoading(false);
-      return;
-    }
     checkAuth();
   }, []);
 
   const checkAuth = async () => {
     try {
-      // Try Google session first
+      // Try Google session first (cookie-based)
       const res = await axios.get(`${API_URL}/api/customer-auth/google/me`, {
         withCredentials: true,
       });
@@ -68,17 +64,10 @@ export const CustomerAuthProvider = ({ children }) => {
     }
   };
 
-  // Google OAuth login
-  const loginWithGoogle = () => {
-    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
-    const redirectUrl = window.location.origin + '/cabinet/callback';
-    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
-  };
-
-  // Process Google OAuth callback
-  const processGoogleCallback = async (sessionId) => {
-    const res = await axios.post(`${API_URL}/api/customer-auth/google/session`, 
-      { sessionId },
+  // Process Google OAuth credential (from native popup)
+  const processGoogleCredential = async (credential) => {
+    const res = await axios.post(`${API_URL}/api/customer-auth/google/verify`, 
+      { credential },
       { withCredentials: true }
     );
     setCustomer(res.data);
@@ -126,8 +115,7 @@ export const CustomerAuthProvider = ({ children }) => {
       login, 
       register, 
       logout, 
-      loginWithGoogle,
-      processGoogleCallback,
+      processGoogleCredential,
       checkAuth
     }}>
       {children}
@@ -141,7 +129,6 @@ export const CustomerProtectedRoute = ({ children }) => {
   const { customer, loading } = useCustomerAuth();
   const location = useLocation();
 
-  // If user data passed from AuthCallback, render immediately
   if (location.state?.user) {
     return children;
   }
@@ -161,56 +148,28 @@ export const CustomerProtectedRoute = ({ children }) => {
   return children;
 };
 
-// ============ AUTH CALLBACK (Google OAuth) ============
+// ============ AUTH CALLBACK (for legacy Emergent flow - kept for compatibility) ============
 
 export const AuthCallback = () => {
   const navigate = useNavigate();
-  const { processGoogleCallback } = useCustomerAuth();
-  const hasProcessed = useRef(false);
-
+  
   useEffect(() => {
-    // Use ref to prevent double processing in StrictMode
-    if (hasProcessed.current) return;
-    hasProcessed.current = true;
-
-    const hash = window.location.hash;
-    const sessionIdMatch = hash.match(/session_id=([^&]+)/);
-    
-    if (sessionIdMatch) {
-      const sessionId = sessionIdMatch[1];
-      
-      processGoogleCallback(sessionId)
-        .then((data) => {
-          // Navigate to cabinet with user data
-          navigate(`/cabinet/${data.customerId}`, { 
-            replace: true,
-            state: { user: data }
-          });
-        })
-        .catch((err) => {
-          console.error('Auth callback error:', err);
-          navigate('/cabinet/login', { replace: true });
-        });
-    } else {
-      navigate('/cabinet/login', { replace: true });
-    }
-  }, []);
+    // Redirect to login - this is legacy flow
+    navigate('/cabinet/login', { replace: true });
+  }, [navigate]);
 
   return (
     <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
-      <div className="text-center">
-        <SpinnerGap size={48} className="animate-spin text-zinc-400 mx-auto mb-4" />
-        <p className="text-zinc-500">Авторизація...</p>
-      </div>
+      <SpinnerGap size={48} className="animate-spin text-zinc-400" />
     </div>
   );
 };
 
 // ============ LOGIN PAGE ============
 
-export const CustomerLoginPage = () => {
+const LoginPageContent = () => {
   const navigate = useNavigate();
-  const { customer, loginWithGoogle } = useCustomerAuth();
+  const { customer, processGoogleCredential } = useCustomerAuth();
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
@@ -219,6 +178,7 @@ export const CustomerLoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   
   const auth = useCustomerAuth();
 
@@ -229,8 +189,27 @@ export const CustomerLoginPage = () => {
     }
   }, [customer, navigate]);
 
-  const handleGoogleLogin = () => {
-    loginWithGoogle();
+  // Handle Google OAuth success
+  const handleGoogleSuccess = async (credentialResponse) => {
+    setGoogleLoading(true);
+    setError('');
+    
+    try {
+      const data = await processGoogleCredential(credentialResponse.credential);
+      navigate(`/cabinet/${data.customerId}`, { 
+        replace: true,
+        state: { user: data }
+      });
+    } catch (err) {
+      console.error('Google auth error:', err);
+      setError('Помилка авторизації через Google. Спробуйте ще раз.');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
+  const handleGoogleError = () => {
+    setError('Не вдалося увійти через Google. Спробуйте інший метод.');
   };
 
   const handleEmailSubmit = async (e) => {
@@ -253,6 +232,8 @@ export const CustomerLoginPage = () => {
       setLoading(false);
     }
   };
+
+  const hasGoogleClientId = !!GOOGLE_CLIENT_ID;
 
   return (
     <div className="min-h-screen bg-zinc-50 flex items-center justify-center p-4" data-testid="customer-login-page">
@@ -279,15 +260,35 @@ export const CustomerLoginPage = () => {
             </div>
           )}
 
-          {/* Google Auth Button - PRIMARY */}
-          <button
-            onClick={handleGoogleLogin}
-            className="w-full bg-white border-2 border-zinc-200 text-zinc-900 py-3.5 rounded-xl font-semibold hover:bg-zinc-50 hover:border-zinc-300 transition-all flex items-center justify-center gap-3 mb-6"
-            data-testid="google-login-btn"
-          >
-            <GoogleLogo size={24} weight="bold" className="text-[#4285F4]" />
-            Увійти через Google
-          </button>
+          {/* Google Loading */}
+          {googleLoading && (
+            <div className="mb-6 p-4 bg-zinc-50 rounded-lg flex items-center justify-center gap-3">
+              <SpinnerGap size={24} className="animate-spin text-zinc-500" />
+              <span className="text-zinc-600">Авторизація...</span>
+            </div>
+          )}
+
+          {/* Native Google Sign-In Button */}
+          {hasGoogleClientId ? (
+            <div className="flex justify-center mb-6" data-testid="google-login-container">
+              <GoogleLogin
+                onSuccess={handleGoogleSuccess}
+                onError={handleGoogleError}
+                useOneTap={false}
+                theme="outline"
+                size="large"
+                width="352"
+                text="signin_with"
+                shape="rectangular"
+                logo_alignment="left"
+              />
+            </div>
+          ) : (
+            <div className="mb-6 p-4 bg-amber-50 border border-amber-200 rounded-lg text-amber-700 text-sm text-center">
+              <p className="font-medium mb-1">Google Sign-In не налаштовано</p>
+              <p className="text-xs">Додайте REACT_APP_GOOGLE_CLIENT_ID в .env</p>
+            </div>
+          )}
 
           {/* Divider */}
           <div className="relative mb-6">
@@ -419,6 +420,20 @@ export const CustomerLoginPage = () => {
         </div>
       </div>
     </div>
+  );
+};
+
+// Wrap with GoogleOAuthProvider
+export const CustomerLoginPage = () => {
+  if (!GOOGLE_CLIENT_ID) {
+    // Show page without Google provider if no client ID
+    return <LoginPageContent />;
+  }
+  
+  return (
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <LoginPageContent />
+    </GoogleOAuthProvider>
   );
 };
 

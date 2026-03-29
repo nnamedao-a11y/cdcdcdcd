@@ -5,6 +5,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
+import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { Model } from 'mongoose';
 import { CustomerAccess, CustomerAccessDocument } from '../customer-cabinet/schemas/customer-access.schema';
@@ -12,6 +13,7 @@ import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
 import axios from 'axios';
+import { OAuth2Client } from 'google-auth-library';
 
 export class CustomerRegisterDto {
   @IsString()
@@ -41,6 +43,7 @@ export class CustomerLoginDto {
 @Injectable()
 export class CustomerAuthService {
   private readonly logger = new Logger(CustomerAuthService.name);
+  private googleClient: OAuth2Client;
 
   constructor(
     @InjectModel(CustomerAccess.name)
@@ -50,9 +53,109 @@ export class CustomerAuthService {
     @InjectModel('CustomerSession')
     private readonly sessionModel: Model<any>,
     private readonly jwtService: JwtService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    // Initialize Google OAuth client
+    const googleClientId = this.configService.get('GOOGLE_CLIENT_ID');
+    if (googleClientId) {
+      this.googleClient = new OAuth2Client(googleClientId);
+    }
+  }
 
-  // ============ GOOGLE OAUTH ============
+  // ============ NATIVE GOOGLE SIGN-IN ============
+
+  /**
+   * Verify Google ID token from native Google Sign-In popup
+   */
+  async verifyGoogleToken(credential: string) {
+    if (!this.googleClient) {
+      throw new UnauthorizedException('Google Sign-In not configured');
+    }
+
+    try {
+      // Verify the token
+      const ticket = await this.googleClient.verifyIdToken({
+        idToken: credential,
+        audience: this.configService.get('GOOGLE_CLIENT_ID'),
+      });
+
+      const payload = ticket.getPayload();
+      if (!payload || !payload.email) {
+        throw new UnauthorizedException('Invalid Google token');
+      }
+
+      const { email, name, picture, sub: googleId } = payload;
+
+      // Find or create customer
+      let customer = await this.customerModel.findOne({ email: email.toLowerCase() }).lean();
+
+      if (!customer) {
+        // Create new customer
+        const nameParts = (name || email.split('@')[0]).split(' ');
+        const firstName = nameParts[0] || 'User';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        const newCustomer = await this.customerModel.create({
+          id: `cust_${uuidv4().slice(0, 12)}`,
+          email: email.toLowerCase(),
+          firstName,
+          lastName: lastName || firstName,
+          phone: '',
+          picture,
+          googleId,
+          status: 'active',
+          source: 'google_oauth',
+          authProvider: 'google',
+          isDeleted: false,
+          createdAt: new Date(),
+        });
+        customer = newCustomer.toObject();
+        this.logger.log(`New Google customer created: ${email}`);
+      } else {
+        // Update picture/googleId if changed
+        const customerData = customer as any;
+        if ((picture && customerData.picture !== picture) || !customerData.googleId) {
+          await this.customerModel.updateOne(
+            { email: email.toLowerCase() },
+            { $set: { picture, googleId, authProvider: 'google' } }
+          );
+        }
+      }
+
+      const customerData = customer as any;
+      const customerId = customerData.id || String(customerData._id);
+
+      // Create session
+      const sessionToken = `sess_${uuidv4()}`;
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+      // Remove old sessions
+      await this.sessionModel.deleteMany({ customerId });
+
+      // Create new session
+      await this.sessionModel.create({
+        customerId,
+        sessionToken,
+        expiresAt,
+        createdAt: new Date(),
+      });
+
+      this.logger.log(`Google Sign-In session created for: ${email}`);
+
+      return {
+        customerId,
+        email: email.toLowerCase(),
+        name: name || customerData.firstName,
+        picture: picture || customerData.picture,
+        sessionToken,
+      };
+    } catch (error) {
+      this.logger.error(`Google token verification error: ${error.message}`);
+      throw new UnauthorizedException('Invalid or expired Google token');
+    }
+  }
+
+  // ============ EMERGENT AUTH (LEGACY) ============
 
   /**
    * Process session_id from Emergent Auth

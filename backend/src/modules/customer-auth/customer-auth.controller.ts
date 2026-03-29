@@ -46,7 +46,7 @@ export class CustomerAuthController {
   // ============ GOOGLE OAUTH ENDPOINTS ============
 
   /**
-   * Exchange session_id from Emergent Auth for customer session
+   * Exchange session_id from Emergent Auth for customer session (legacy)
    * POST /customer-auth/google/session
    */
   @Post('google/session')
@@ -55,6 +55,34 @@ export class CustomerAuthController {
     @Res({ passthrough: true }) res: Response,
   ) {
     const result = await this.authService.processGoogleSession(body.sessionId);
+    
+    // Set httpOnly cookie
+    res.cookie('customer_session', result.sessionToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    
+    return {
+      customerId: result.customerId,
+      email: result.email,
+      name: result.name,
+      picture: result.picture,
+    };
+  }
+
+  /**
+   * Verify Google ID token from native Google Sign-In
+   * POST /customer-auth/google/verify
+   */
+  @Post('google/verify')
+  async googleVerify(
+    @Body() body: { credential: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.verifyGoogleToken(body.credential);
     
     // Set httpOnly cookie
     res.cookie('customer_session', result.sessionToken, {
