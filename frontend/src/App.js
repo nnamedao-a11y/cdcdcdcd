@@ -21,7 +21,7 @@ import VehiclesPage from './pages/public/VehiclesPage';
 import VinCheckPage from './pages/public/VinCheckPage';
 import VehicleDetailPage from './pages/public/VehicleDetailPage';
 import CalculatorPage from './pages/public/CalculatorPage';
-import CustomerLoginPage, { CustomerAuthProvider, CustomerProtectedRoute } from './pages/public/CustomerAuth';
+import CustomerLoginPage, { CustomerAuthProvider, CustomerProtectedRoute, AuthCallback } from './pages/public/CustomerAuth';
 import { CollectionsPage, CollectionDetailPage } from './pages/public/CollectionsPage';
 
 // Admin pages
@@ -190,6 +190,7 @@ function App() {
 
             {/* ====== CUSTOMER AUTH ====== */}
             <Route path="/cabinet/login" element={<CustomerLoginPage />} />
+            <Route path="/cabinet/callback" element={<AuthCallback />} />
             <Route path="/cabinet" element={<Navigate to="/cabinet/login" replace />} />
 
             {/* ====== ADMIN CRM ====== */}

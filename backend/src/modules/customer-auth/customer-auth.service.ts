@@ -11,6 +11,7 @@ import { CustomerAccess, CustomerAccessDocument } from '../customer-cabinet/sche
 import * as bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 import { IsEmail, IsString, MinLength, IsOptional } from 'class-validator';
+import axios from 'axios';
 
 export class CustomerRegisterDto {
   @IsString()
@@ -46,8 +47,155 @@ export class CustomerAuthService {
     private readonly accessModel: Model<CustomerAccessDocument>,
     @InjectModel('Customer')
     private readonly customerModel: Model<any>,
+    @InjectModel('CustomerSession')
+    private readonly sessionModel: Model<any>,
     private readonly jwtService: JwtService,
   ) {}
+
+  // ============ GOOGLE OAUTH ============
+
+  /**
+   * Process session_id from Emergent Auth
+   * Creates/updates customer and returns session token
+   */
+  async processGoogleSession(sessionId: string) {
+    if (!sessionId) {
+      throw new UnauthorizedException('Session ID is required');
+    }
+
+    // Call Emergent Auth to get user data
+    try {
+      const response = await axios.get(
+        'https://demobackend.emergentagent.com/auth/v1/env/oauth/session-data',
+        {
+          headers: { 'X-Session-ID': sessionId },
+        }
+      );
+
+      const { id, email, name, picture, session_token } = response.data;
+
+      if (!email) {
+        throw new UnauthorizedException('Invalid session data');
+      }
+
+      // Find or create customer
+      let customer = await this.customerModel.findOne({ email: email.toLowerCase() }).lean();
+
+      if (!customer) {
+        // Create new customer
+        const nameParts = (name || email.split('@')[0]).split(' ');
+        const firstName = nameParts[0] || 'User';
+        const lastName = nameParts.slice(1).join(' ') || '';
+
+        const newCustomer = await this.customerModel.create({
+          id: `cust_${uuidv4().slice(0, 12)}`,
+          email: email.toLowerCase(),
+          firstName,
+          lastName: lastName || firstName,
+          phone: '',
+          picture,
+          status: 'active',
+          source: 'google_oauth',
+          authProvider: 'google',
+          isDeleted: false,
+          createdAt: new Date(),
+        });
+        customer = newCustomer.toObject();
+        this.logger.log(`New Google customer created: ${email}`);
+      } else {
+        // Update picture if changed
+        const customerData = customer as any;
+        if (picture && customerData.picture !== picture) {
+          await this.customerModel.updateOne(
+            { email: email.toLowerCase() },
+            { $set: { picture, authProvider: 'google' } }
+          );
+        }
+      }
+
+      const customerData = customer as any;
+      const customerId = customerData.id || String(customerData._id);
+
+      // Create session in DB
+      const sessionToken = session_token || `sess_${uuidv4()}`;
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+
+      // Remove old sessions
+      await this.sessionModel.deleteMany({ customerId });
+
+      // Create new session
+      await this.sessionModel.create({
+        customerId,
+        sessionToken,
+        expiresAt,
+        createdAt: new Date(),
+      });
+
+      this.logger.log(`Google session created for: ${email}`);
+
+      return {
+        customerId,
+        email: email.toLowerCase(),
+        name: name || customerData.firstName,
+        picture: picture || customerData.picture,
+        sessionToken,
+      };
+    } catch (error) {
+      this.logger.error(`Google session error: ${error.message}`);
+      throw new UnauthorizedException('Invalid or expired session');
+    }
+  }
+
+  /**
+   * Get user from session token
+   */
+  async getGoogleSession(sessionToken: string) {
+    const session = await this.sessionModel.findOne({ sessionToken }).lean() as any;
+
+    if (!session) {
+      throw new UnauthorizedException('Session not found');
+    }
+
+    // Check expiry with timezone awareness
+    let expiresAt = session.expiresAt;
+    if (typeof expiresAt === 'string') {
+      expiresAt = new Date(expiresAt);
+    }
+    if (!expiresAt.getTimezoneOffset) {
+      expiresAt = new Date(expiresAt);
+    }
+
+    if (expiresAt < new Date()) {
+      await this.sessionModel.deleteOne({ sessionToken });
+      throw new UnauthorizedException('Session expired');
+    }
+
+    // Get customer
+    const customer = await this.customerModel.findOne(
+      { id: session.customerId },
+      { _id: 0 }
+    ).lean() as any;
+
+    if (!customer) {
+      throw new UnauthorizedException('Customer not found');
+    }
+
+    return {
+      customerId: customer.id,
+      email: customer.email,
+      name: customer.firstName + (customer.lastName ? ' ' + customer.lastName : ''),
+      picture: customer.picture,
+      firstName: customer.firstName,
+      lastName: customer.lastName,
+    };
+  }
+
+  /**
+   * Delete session (logout)
+   */
+  async deleteGoogleSession(sessionToken: string) {
+    await this.sessionModel.deleteOne({ sessionToken });
+  }
 
   async register(dto: CustomerRegisterDto) {
     this.logger.log(`Register attempt with: ${JSON.stringify(dto)}`);

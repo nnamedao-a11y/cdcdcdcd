@@ -6,8 +6,12 @@ import {
   Param,
   Post,
   Req,
+  Res,
   UseGuards,
+  Headers,
+  UnauthorizedException,
 } from '@nestjs/common';
+import { Response } from 'express';
 import { CustomerAuthService, CustomerRegisterDto, CustomerLoginDto } from './customer-auth.service';
 import { CustomerRetentionService, SaveListingPayload } from './customer-retention.service';
 import { CustomerJwtGuard } from './customer-jwt.guard';
@@ -38,6 +42,84 @@ export class CustomerAuthController {
     private readonly authService: CustomerAuthService,
     private readonly retentionService: CustomerRetentionService,
   ) {}
+
+  // ============ GOOGLE OAUTH ENDPOINTS ============
+
+  /**
+   * Exchange session_id from Emergent Auth for customer session
+   * POST /customer-auth/google/session
+   */
+  @Post('google/session')
+  async googleSession(
+    @Body() body: { sessionId: string },
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const result = await this.authService.processGoogleSession(body.sessionId);
+    
+    // Set httpOnly cookie
+    res.cookie('customer_session', result.sessionToken, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    });
+    
+    return {
+      customerId: result.customerId,
+      email: result.email,
+      name: result.name,
+      picture: result.picture,
+    };
+  }
+
+  /**
+   * Get current user from session token (cookie or header)
+   * GET /customer-auth/google/me
+   */
+  @Get('google/me')
+  async googleMe(
+    @Req() req: any,
+    @Headers('authorization') authHeader: string,
+  ) {
+    // Try cookie first, then Authorization header
+    let sessionToken = req.cookies?.customer_session;
+    
+    if (!sessionToken && authHeader?.startsWith('Bearer ')) {
+      sessionToken = authHeader.substring(7);
+    }
+    
+    if (!sessionToken) {
+      throw new UnauthorizedException('No session token');
+    }
+    
+    return this.authService.getGoogleSession(sessionToken);
+  }
+
+  /**
+   * Logout - clear session
+   * POST /customer-auth/google/logout
+   */
+  @Post('google/logout')
+  async googleLogout(
+    @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const sessionToken = req.cookies?.customer_session;
+    
+    if (sessionToken) {
+      await this.authService.deleteGoogleSession(sessionToken);
+    }
+    
+    res.clearCookie('customer_session', {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      path: '/',
+    });
+    
+    return { success: true };
+  }
 
   // ============ AUTH ENDPOINTS ============
 

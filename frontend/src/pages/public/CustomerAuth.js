@@ -1,11 +1,12 @@
 /**
  * Customer Auth Context and Login Page
  * 
- * Client authentication for customer cabinet
+ * Google OAuth (1-click) + Legacy email/password
+ * REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
  */
 
-import React, { useState, useEffect, createContext, useContext } from 'react';
-import { useNavigate, useParams, Link, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
+import { useNavigate, useLocation, Link, Navigate } from 'react-router-dom';
 import axios from 'axios';
 import { 
   User, 
@@ -15,7 +16,8 @@ import {
   EyeSlash, 
   ArrowLeft,
   Warning,
-  SpinnerGap
+  SpinnerGap,
+  GoogleLogo
 } from '@phosphor-icons/react';
 
 const API_URL = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
@@ -28,41 +30,73 @@ export const useCustomerAuth = () => useContext(CustomerAuthContext);
 
 export const CustomerAuthProvider = ({ children }) => {
   const [customer, setCustomer] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('customer_token'));
   const [loading, setLoading] = useState(true);
+  const location = useLocation();
 
   useEffect(() => {
-    if (token) {
-      fetchProfile();
-    } else {
+    // CRITICAL: If returning from OAuth callback, skip the /me check
+    // AuthCallback will exchange the session_id and establish the session first
+    if (window.location.hash?.includes('session_id=')) {
       setLoading(false);
+      return;
     }
-  }, [token]);
+    checkAuth();
+  }, []);
 
-  const fetchProfile = async () => {
+  const checkAuth = async () => {
     try {
-      const res = await axios.get(`${API_URL}/api/customer-auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
+      // Try Google session first
+      const res = await axios.get(`${API_URL}/api/customer-auth/google/me`, {
+        withCredentials: true,
       });
       setCustomer(res.data);
     } catch (err) {
-      logout();
+      // Try legacy JWT token
+      const token = localStorage.getItem('customer_token');
+      if (token) {
+        try {
+          const res = await axios.get(`${API_URL}/api/customer-auth/me`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          setCustomer(res.data);
+        } catch {
+          localStorage.removeItem('customer_token');
+        }
+      }
     } finally {
       setLoading(false);
     }
   };
 
+  // Google OAuth login
+  const loginWithGoogle = () => {
+    // REMINDER: DO NOT HARDCODE THE URL, OR ADD ANY FALLBACKS OR REDIRECT URLS, THIS BREAKS THE AUTH
+    const redirectUrl = window.location.origin + '/cabinet/callback';
+    window.location.href = `https://auth.emergentagent.com/?redirect=${encodeURIComponent(redirectUrl)}`;
+  };
+
+  // Process Google OAuth callback
+  const processGoogleCallback = async (sessionId) => {
+    const res = await axios.post(`${API_URL}/api/customer-auth/google/session`, 
+      { sessionId },
+      { withCredentials: true }
+    );
+    setCustomer(res.data);
+    return res.data;
+  };
+
+  // Legacy email/password login
   const login = async (email, password) => {
     const res = await axios.post(`${API_URL}/api/customer-auth/login`, {
       email,
       password
     });
     localStorage.setItem('customer_token', res.data.accessToken);
-    setToken(res.data.accessToken);
     setCustomer(res.data);
     return res.data;
   };
 
+  // Legacy register
   const register = async (email, password, name) => {
     const res = await axios.post(`${API_URL}/api/customer-auth/register`, {
       email,
@@ -71,19 +105,31 @@ export const CustomerAuthProvider = ({ children }) => {
       customerId: ''
     });
     localStorage.setItem('customer_token', res.data.accessToken);
-    setToken(res.data.accessToken);
     setCustomer(res.data);
     return res.data;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await axios.post(`${API_URL}/api/customer-auth/google/logout`, {}, {
+        withCredentials: true
+      });
+    } catch {}
     localStorage.removeItem('customer_token');
-    setToken(null);
     setCustomer(null);
   };
 
   return (
-    <CustomerAuthContext.Provider value={{ customer, token, login, register, logout, loading }}>
+    <CustomerAuthContext.Provider value={{ 
+      customer, 
+      loading, 
+      login, 
+      register, 
+      logout, 
+      loginWithGoogle,
+      processGoogleCallback,
+      checkAuth
+    }}>
       {children}
     </CustomerAuthContext.Provider>
   );
@@ -93,6 +139,12 @@ export const CustomerAuthProvider = ({ children }) => {
 
 export const CustomerProtectedRoute = ({ children }) => {
   const { customer, loading } = useCustomerAuth();
+  const location = useLocation();
+
+  // If user data passed from AuthCallback, render immediately
+  if (location.state?.user) {
+    return children;
+  }
 
   if (loading) {
     return (
@@ -109,11 +161,57 @@ export const CustomerProtectedRoute = ({ children }) => {
   return children;
 };
 
+// ============ AUTH CALLBACK (Google OAuth) ============
+
+export const AuthCallback = () => {
+  const navigate = useNavigate();
+  const { processGoogleCallback } = useCustomerAuth();
+  const hasProcessed = useRef(false);
+
+  useEffect(() => {
+    // Use ref to prevent double processing in StrictMode
+    if (hasProcessed.current) return;
+    hasProcessed.current = true;
+
+    const hash = window.location.hash;
+    const sessionIdMatch = hash.match(/session_id=([^&]+)/);
+    
+    if (sessionIdMatch) {
+      const sessionId = sessionIdMatch[1];
+      
+      processGoogleCallback(sessionId)
+        .then((data) => {
+          // Navigate to cabinet with user data
+          navigate(`/cabinet/${data.customerId}`, { 
+            replace: true,
+            state: { user: data }
+          });
+        })
+        .catch((err) => {
+          console.error('Auth callback error:', err);
+          navigate('/cabinet/login', { replace: true });
+        });
+    } else {
+      navigate('/cabinet/login', { replace: true });
+    }
+  }, []);
+
+  return (
+    <div className="min-h-screen bg-zinc-50 flex items-center justify-center">
+      <div className="text-center">
+        <SpinnerGap size={48} className="animate-spin text-zinc-400 mx-auto mb-4" />
+        <p className="text-zinc-500">Авторизація...</p>
+      </div>
+    </div>
+  );
+};
+
 // ============ LOGIN PAGE ============
 
 export const CustomerLoginPage = () => {
   const navigate = useNavigate();
-  const { customer } = useCustomerAuth();
+  const { customer, loginWithGoogle } = useCustomerAuth();
+  const [showEmailForm, setShowEmailForm] = useState(false);
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -131,7 +229,11 @@ export const CustomerLoginPage = () => {
     }
   }, [customer, navigate]);
 
-  const handleSubmit = async (e) => {
+  const handleGoogleLogin = () => {
+    loginWithGoogle();
+  };
+
+  const handleEmailSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
@@ -162,12 +264,10 @@ export const CustomerLoginPage = () => {
               <User size={32} weight="bold" className="text-white" />
             </div>
             <h1 className="text-2xl font-bold text-zinc-900">
-              {isLogin ? 'Вхід в кабінет' : 'Реєстрація'}
+              Особистий кабінет
             </h1>
             <p className="text-zinc-500 mt-2 text-sm">
-              {isLogin 
-                ? 'Увійдіть для доступу до вашого кабінету' 
-                : 'Створіть акаунт для відстеження замовлень'}
+              Увійдіть для доступу до замовлень та збережених авто
             </p>
           </div>
 
@@ -179,100 +279,132 @@ export const CustomerLoginPage = () => {
             </div>
           )}
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {!isLogin && (
-              <div>
-                <label className="block text-sm font-medium text-zinc-700 mb-2">
-                  Ваше ім'я
-                </label>
-                <div className="relative">
-                  <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Іван Петренко"
-                    className="w-full pl-11 pr-4 py-3 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all"
-                    data-testid="register-name-input"
-                  />
-                </div>
-              </div>
-            )}
+          {/* Google Auth Button - PRIMARY */}
+          <button
+            onClick={handleGoogleLogin}
+            className="w-full bg-white border-2 border-zinc-200 text-zinc-900 py-3.5 rounded-xl font-semibold hover:bg-zinc-50 hover:border-zinc-300 transition-all flex items-center justify-center gap-3 mb-6"
+            data-testid="google-login-btn"
+          >
+            <GoogleLogo size={24} weight="bold" className="text-[#4285F4]" />
+            Увійти через Google
+          </button>
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
-                Email
-              </label>
-              <div className="relative">
-                <Envelope size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="your@email.com"
-                  required
-                  className="w-full pl-11 pr-4 py-3 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all"
-                  data-testid="login-email-input"
-                />
-              </div>
+          {/* Divider */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-zinc-200"></div>
             </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-4 bg-white text-zinc-400">або</span>
+            </div>
+          </div>
 
-            <div>
-              <label className="block text-sm font-medium text-zinc-700 mb-2">
-                Пароль
-              </label>
-              <div className="relative">
-                <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  minLength={6}
-                  className="w-full pl-11 pr-12 py-3 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all"
-                  data-testid="login-password-input"
-                />
+          {/* Email Form Toggle */}
+          {!showEmailForm ? (
+            <button
+              onClick={() => setShowEmailForm(true)}
+              className="w-full text-zinc-500 hover:text-zinc-900 py-2 text-sm transition-colors"
+            >
+              Увійти через email
+            </button>
+          ) : (
+            <>
+              {/* Email Form */}
+              <form onSubmit={handleEmailSubmit} className="space-y-5">
+                {!isLogin && (
+                  <div>
+                    <label className="block text-sm font-medium text-zinc-700 mb-2">
+                      Ваше ім'я
+                    </label>
+                    <div className="relative">
+                      <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="Іван Петренко"
+                        className="w-full pl-11 pr-4 py-3 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all"
+                        data-testid="register-name-input"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-2">
+                    Email
+                  </label>
+                  <div className="relative">
+                    <Envelope size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="your@email.com"
+                      required
+                      className="w-full pl-11 pr-4 py-3 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all"
+                      data-testid="login-email-input"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-700 mb-2">
+                    Пароль
+                  </label>
+                  <div className="relative">
+                    <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="••••••••"
+                      required
+                      minLength={6}
+                      className="w-full pl-11 pr-12 py-3 border border-zinc-200 rounded-xl focus:ring-2 focus:ring-zinc-900 focus:border-zinc-900 outline-none transition-all"
+                      data-testid="login-password-input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                    >
+                      {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                </div>
+
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+                  type="submit"
+                  disabled={loading}
+                  className="w-full bg-zinc-900 text-white py-3.5 rounded-xl font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  data-testid="login-submit-btn"
                 >
-                  {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
+                  {loading ? (
+                    <>
+                      <SpinnerGap size={20} className="animate-spin" />
+                      Завантаження...
+                    </>
+                  ) : (
+                    isLogin ? 'Увійти' : 'Зареєструватись'
+                  )}
+                </button>
+              </form>
+
+              {/* Toggle */}
+              <div className="mt-6 text-center text-sm">
+                <span className="text-zinc-500">
+                  {isLogin ? 'Немає акаунту?' : 'Вже маєте акаунт?'}
+                </span>
+                <button
+                  onClick={() => { setIsLogin(!isLogin); setError(''); }}
+                  className="ml-2 text-zinc-900 font-semibold hover:underline"
+                >
+                  {isLogin ? 'Зареєструватись' : 'Увійти'}
                 </button>
               </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-zinc-900 text-white py-3.5 rounded-xl font-semibold hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-              data-testid="login-submit-btn"
-            >
-              {loading ? (
-                <>
-                  <SpinnerGap size={20} className="animate-spin" />
-                  Завантаження...
-                </>
-              ) : (
-                isLogin ? 'Увійти' : 'Зареєструватись'
-              )}
-            </button>
-          </form>
-
-          {/* Toggle */}
-          <div className="mt-6 text-center text-sm">
-            <span className="text-zinc-500">
-              {isLogin ? 'Немає акаунту?' : 'Вже маєте акаунт?'}
-            </span>
-            <button
-              onClick={() => { setIsLogin(!isLogin); setError(''); }}
-              className="ml-2 text-zinc-900 font-semibold hover:underline"
-            >
-              {isLogin ? 'Зареєструватись' : 'Увійти'}
-            </button>
-          </div>
+            </>
+          )}
 
           {/* Back to site */}
           <div className="mt-8 pt-6 border-t border-zinc-100 text-center">

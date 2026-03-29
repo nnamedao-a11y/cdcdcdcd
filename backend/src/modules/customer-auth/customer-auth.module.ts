@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { CustomerAccess, CustomerAccessSchema } from '../customer-cabinet/schemas/customer-access.schema';
 import { CustomerSavedListing, CustomerSavedListingSchema } from './schemas/customer-saved-listing.schema';
 import { CustomerRecentlyViewed, CustomerRecentlyViewedSchema } from './schemas/customer-recently-viewed.schema';
+import { CustomerSession, CustomerSessionSchema } from './schemas/customer-session.schema';
 import { VehicleListing, VehicleListingSchema } from '../publishing/schemas/vehicle-listing.schema';
 import { Customer, CustomerSchema } from '../customers/customer.schema';
 import { CustomerAuthService } from './customer-auth.service';
@@ -16,7 +17,8 @@ import { CustomerJwtStrategy } from './customer-jwt.strategy';
  * Customer Auth Module
  * 
  * Authentication and retention for customer cabinet
- * - JWT-based login/register
+ * - Google OAuth (Emergent Auth)
+ * - JWT-based login/register (legacy)
  * - Saved listings
  * - Recently viewed
  */
@@ -32,6 +34,7 @@ import { CustomerJwtStrategy } from './customer-jwt.strategy';
       { name: CustomerAccess.name, schema: CustomerAccessSchema },
       { name: CustomerSavedListing.name, schema: CustomerSavedListingSchema },
       { name: CustomerRecentlyViewed.name, schema: CustomerRecentlyViewedSchema },
+      { name: CustomerSession.name, schema: CustomerSessionSchema },
       { name: 'VehicleListing', schema: VehicleListingSchema },
       { name: 'Customer', schema: CustomerSchema },
     ]),
