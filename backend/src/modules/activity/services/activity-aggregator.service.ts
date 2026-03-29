@@ -164,7 +164,7 @@ export class ActivityAggregatorService {
       {
         $match: {
           createdAt: { $gte: startDate },
-          userRole: { $in: ['manager', 'moderator'] },
+          userRole: { $in: ['manager'] },
         },
       },
       {
@@ -253,14 +253,14 @@ export class ActivityAggregatorService {
 
     const activeUserIds = await this.activityModel.distinct('userId', {
       createdAt: { $gte: thresholdDate },
-      userRole: { $in: ['manager', 'moderator'] },
+      userRole: { $in: ['manager'] },
     });
 
     // Повертаємо список користувачів, яких немає в активних
     const allRecentUsers = await this.activityModel.aggregate([
       {
         $match: {
-          userRole: { $in: ['manager', 'moderator'] },
+          userRole: { $in: ['manager'] },
         },
       },
       {

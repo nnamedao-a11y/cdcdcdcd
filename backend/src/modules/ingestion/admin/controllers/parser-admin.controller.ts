@@ -37,7 +37,7 @@ export class ParserAdminController {
    * Огляд всіх парсерів
    */
   @Get('parsers')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getParsersOverview() {
     return this.adminService.getParsersOverview();
   }
@@ -48,7 +48,7 @@ export class ParserAdminController {
    * Деталі конкретного парсера
    */
   @Get('parsers/:source')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getParserDetails(@Param('source') source: string) {
     return this.adminService.getParserDetails(source);
   }
@@ -167,7 +167,7 @@ export class ParserAdminController {
    * Загальний health overview
    */
   @Get('health')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getHealthOverview() {
     return this.adminService.getHealthOverview();
   }
@@ -178,7 +178,7 @@ export class ParserAdminController {
    * Health конкретного парсера
    */
   @Get('health/:source')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getSourceHealth(@Param('source') source: string) {
     return this.adminService.getSourceHealth(source);
   }
@@ -232,7 +232,7 @@ export class ParserAdminController {
    * Активні alerts
    */
   @Get('alerts')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getAlerts(@Query('includeResolved') includeResolved?: string) {
     return this.adminService.getAlerts(includeResolved === 'true');
   }

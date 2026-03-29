@@ -25,7 +25,7 @@ export class ActivityController {
 
   // Останні активності
   @Get('recent')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.ADMIN)
   async getRecent(@Query('limit') limit?: number) {
     return this.activityService.getRecentActivity(limit || 20);
   }
@@ -45,7 +45,7 @@ export class ActivityController {
 
   // Активність по сутності (lead, deal, etc)
   @Get('entity/:entityType/:entityId')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR, UserRole.MANAGER)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.ADMIN, UserRole.MANAGER)
   async getEntityActivity(
     @Request() req,
     @Query('limit') limit?: number,

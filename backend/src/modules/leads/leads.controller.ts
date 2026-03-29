@@ -22,7 +22,7 @@ export class LeadsController {
   }
 
   @Get('stats')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.ADMIN)
   async getStats() {
     return this.leadsService.getStats();
   }
@@ -38,7 +38,7 @@ export class LeadsController {
   }
 
   @Put(':id/assign')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.ADMIN)
   async assign(@Param('id') id: string, @Body('assignedTo') assignedTo: string, @Request() req) {
     return this.leadsService.assign(id, assignedTo, req.user.id);
   }

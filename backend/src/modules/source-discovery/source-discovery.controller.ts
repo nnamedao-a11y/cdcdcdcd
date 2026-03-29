@@ -24,7 +24,7 @@ export class SourceDiscoveryController {
    * GET /api/admin/discovery - список всіх знайдених джерел
    */
   @Get()
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getAll() {
     const sources = await this.discovery.getAll();
     const stats = await this.discovery.getStats();
@@ -35,7 +35,7 @@ export class SourceDiscoveryController {
    * GET /api/admin/discovery/stats - статистика discovery
    */
   @Get('stats')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getStats() {
     return this.discovery.getStats();
   }
@@ -44,7 +44,7 @@ export class SourceDiscoveryController {
    * GET /api/admin/discovery/candidates - джерела готові до promotion
    */
   @Get('candidates')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getCandidates(
     @Query('minReliability') minReliability?: string,
     @Query('minCheckCount') minCheckCount?: string,

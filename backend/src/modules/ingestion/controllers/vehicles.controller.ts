@@ -63,7 +63,7 @@ export class VehiclesController {
    * Список авто з фільтрами та пагінацією
    */
   @Get()
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getVehicles(@Query() query: VehicleQueryDto): Promise<any> {
     const {
       page = '1',
@@ -149,7 +149,7 @@ export class VehiclesController {
    * Статистика по авто
    */
   @Get('stats')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getStats() {
     const [total, bySource, byStatus, priceRange] = await Promise.all([
       this.vehicleModel.countDocuments({ isDeleted: { $ne: true } }),
@@ -181,7 +181,7 @@ export class VehiclesController {
    * Список марок для фільтра
    */
   @Get('makes')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getMakes() {
     const makes = await this.vehicleModel.aggregate([
       { $match: { isDeleted: { $ne: true }, make: { $exists: true, $ne: null } } },
@@ -199,7 +199,7 @@ export class VehiclesController {
    * Деталі авто
    */
   @Get(':id')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getVehicle(@Param('id') id: string): Promise<any> {
     const vehicle = await this.vehicleModel
       .findOne({ $or: [{ id }, { vin: id }], isDeleted: { $ne: true } })
@@ -229,7 +229,7 @@ export class VehiclesController {
    * Створити лід з авто
    */
   @Post(':id/create-lead')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   @HttpCode(HttpStatus.CREATED)
   async createLead(
     @Param('id') id: string,

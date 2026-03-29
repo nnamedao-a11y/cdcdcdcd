@@ -15,7 +15,7 @@ export class StaffController {
   ) {}
 
   @Get()
-  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.ADMIN)
   async findAll(@Query() query: any) {
     return this.usersService.findAll(query);
   }

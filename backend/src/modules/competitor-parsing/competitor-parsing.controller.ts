@@ -21,7 +21,7 @@ export class CompetitorParsingController {
    * GET /api/admin/competitors - список всіх джерел конкурентів
    */
   @Get()
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getSources() {
     const all = COMPETITOR_SOURCES;
     const enabled = getEnabledSources();

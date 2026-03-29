@@ -24,7 +24,7 @@ export class SourceRegistryController {
    * GET /api/admin/sources - список всіх джерел з stats
    */
   @Get()
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getAll() {
     const sources = await this.service.getAll();
     const stats = await this.service.getStats();
@@ -35,7 +35,7 @@ export class SourceRegistryController {
    * GET /api/admin/sources/enabled - тільки активні
    */
   @Get('enabled')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getEnabled() {
     return this.service.getEnabledSources();
   }
@@ -44,7 +44,7 @@ export class SourceRegistryController {
    * GET /api/admin/sources/report - optimization report
    */
   @Get('report')
-  @Roles(UserRole.MASTER_ADMIN, UserRole.MODERATOR)
+  @Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN)
   async getReport() {
     return this.optimization.getReport();
   }

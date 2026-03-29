@@ -200,12 +200,6 @@ export class SeedService {
       },
       {
         id: generateId(),
-        email: 'moderator@crm.com',
-        password: hashedPassword,
-        firstName: 'Марія',
-        lastName: 'Модератор',
-        phone: '+380502222222',
-        role: UserRole.MODERATOR,
         isActive: true,
       },
       {
@@ -455,7 +449,7 @@ export class SeedService {
 
     // Get managers for routing
     const managers = await this.userModel.find({ 
-      role: { $in: [UserRole.MANAGER, UserRole.MODERATOR] }, 
+      role: { $in: [UserRole.MANAGER] }, 
       isActive: true 
     });
 
@@ -828,7 +822,7 @@ export class SeedService {
     const contactStatuses = Object.values(ContactStatus);
     
     const managers = await this.userModel.find({ 
-      role: { $in: [UserRole.MANAGER, UserRole.MODERATOR] }, 
+      role: { $in: [UserRole.MANAGER] }, 
       isActive: true 
     });
 

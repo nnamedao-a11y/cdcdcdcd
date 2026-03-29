@@ -8,7 +8,7 @@ import { UserRole } from '../../shared/enums';
 
 @Controller('export')
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.MODERATOR, UserRole.FINANCE)
+@Roles(UserRole.MASTER_ADMIN, UserRole.ADMIN, UserRole.ADMIN, UserRole.FINANCE)
 export class ExportController {
   constructor(private readonly exportService: ExportService) {}
 
