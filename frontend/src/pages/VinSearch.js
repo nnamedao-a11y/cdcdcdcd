@@ -225,13 +225,18 @@ const VinSearch = () => {
     <div data-testid="vin-search-page">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#18181B]" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-            VIN Intelligence Engine
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            Пошук інформації про авто • Auto-Optimization
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-blue-100 rounded-xl">
+            <MagnifyingGlass size={24} weight="duotone" className="text-blue-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-[#18181B]" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
+              VIN Intelligence Engine
+            </h1>
+            <p className="text-sm text-[#71717A] mt-1">
+              Пошук інформації про авто • Auto-Optimization
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {isMasterAdmin && (

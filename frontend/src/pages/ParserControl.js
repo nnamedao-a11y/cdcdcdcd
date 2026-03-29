@@ -401,9 +401,14 @@ const ParserControl = () => {
     <div data-testid="parser-control-page">
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]">Parser Control Center</h1>
-          <p className="text-[#71717A]">Керування парсерами та моніторинг</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-emerald-100 rounded-xl">
+            <Database size={24} weight="duotone" className="text-emerald-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[#18181B]">Центр керування парсерами</h1>
+            <p className="text-[#71717A]">Керування парсерами та моніторинг</p>
+          </div>
         </div>
         {isMasterAdmin && (
           <div className="flex gap-2">

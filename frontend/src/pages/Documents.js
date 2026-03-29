@@ -154,11 +154,16 @@ const Documents = () => {
     >
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-[#18181B]" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-            Документи
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">Управління документами та верифікація</p>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-indigo-100 rounded-xl">
+            <FileText size={24} weight="duotone" className="text-indigo-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-[#18181B]" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
+              Документи
+            </h1>
+            <p className="text-sm text-[#71717A] mt-1">Управління документами та верифікація</p>
+          </div>
         </div>
         {isAdminOrFinance && pendingDocs.length > 0 && (
           <div className="flex items-center gap-2 px-4 py-2 bg-[#FEF3C7] border border-[#FCD34D] rounded-xl">

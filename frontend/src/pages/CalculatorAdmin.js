@@ -193,13 +193,18 @@ const CalculatorAdmin = () => {
     >
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
-            Налаштування калькулятора
-          </h1>
-          <p className="text-sm text-[#71717A] mt-1">
-            Керування ставками, комісіями та hidden fee
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-amber-100 rounded-xl">
+            <Calculator size={24} weight="duotone" className="text-amber-600" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-bold text-[#18181B]" style={{ fontFamily: 'Cabinet Grotesk, sans-serif' }}>
+              Налаштування калькулятора
+            </h1>
+            <p className="text-sm text-[#71717A] mt-1">
+              Керування ставками, комісіями та hidden fee
+            </p>
+          </div>
         </div>
         <button
           onClick={loadAllData}
